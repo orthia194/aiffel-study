@@ -5,7 +5,7 @@
 2026 08 19
 개발 환경 세팅 (코랩 + VS Code + 깃허브 연동 완료)
 
-2026 08 25
+2026 08 25 [머신러닝](https://github.com/orthia194/aiffel-study/blob/main/2026/08/25/README.md)
 #### 머신러닝의 알고리즘 종류는 크게 3가지
   지도학습 (Supervised Learning)
   비지도학습 (Unsupervised Learning)
