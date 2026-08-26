@@ -89,6 +89,7 @@ print(classification_report(y_test, y_pred_new))
   * *의미:* 원래 있던 진짜 `1` 중에서 "몇 개나 긁어모았는가" (누락 방지)
 
 ---
+![Precision and Recall Diagram](https://upload.wikimedia.org/wikipedia/commons/2/26/Precisionrecall.svg)
 
 ## 2. 임계값(Threshold)과 트레이드오프 (Trade-off)
 
