@@ -21,6 +21,17 @@
 | **실제: Positive** | **TP** (True Positive)<br>실제 양성을 양성으로 맞춤 | **FN** (False Negative)<br>실제 양성을 음성으로 틀림 |
 | **실제: Negative** | **FP** (False Positive)<br>실제 음성을 양성으로 틀림 | **TN** (True Negative)<br>실제 음성을 음성으로 맞춤 |
 
+분류 모델의 예측 결과를 정답과 비교하여 4가지로 분류한 표입니다.
+쉽게 이해하려면 **"Positive = 범인(우리가 찾으려는 대상)"**, **"Negative = 일반 시민(정상)"**으로 비유하면 쉽습니다.
+
+| | **예측: Positive (범인으로 지목)** | **예측: Negative (시민으로 판정)** |
+|---|---|---|
+| **실제: Positive (진짜 범인)** | **TP** (True Positive)<br>범인을 정확히 체포함 | **FN** (False Negative)<br>범인을 못 알아보고 놓침 *(2종 오류)* |
+| **실제: Negative (일반 시민)** | **FP** (False Positive)<br>시민에게 억울하게 누명을 씌움 *(1종 오류)* | **TN** (True Negative)<br>시민을 정상적으로 돌려보냄 |
+
+### 💡 용어 쉽게 읽는 법 (2글자 법칙)
+* **뒤쪽 글자 (Positive / Negative):** 모델이 **무엇으로 예측했는지** (범인으로 봤나? 시민으로 봤나?)
+* **앞쪽 글자 (True / False):** 그 예측이 **맞았는지 / 틀렸는지**
 ---
 
 ## 3. Precision vs Recall
