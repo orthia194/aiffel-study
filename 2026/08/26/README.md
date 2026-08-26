@@ -63,3 +63,47 @@
   * **Precision 상승 ↑ / Recall 하강 ↓**
 
 > ⚠️ **Trade-off (시소 관계):** Precision과 Recall은 한쪽이 올라가면 다른 쪽이 떨어지는 반비례 관계입니다.
+>
+> ## 📊 5. Threshold(임계값) 변경을 통한 성능 조절 및 PR 커브
+
+### 1. 임계값(Threshold)이란?
+* `decision_function()`이 출력하는 **`y_score`**(결정 경계로부터의 거리/확신도 점수)를 기준으로 `0`과 `1`을 분류하는 **판단 기준선**입니다.
+* 기본값(Default)은 `0`이지만, 분석 목적에 따라 기준을 높이거나 낮출 수 있습니다.
+
+# 임계값을 기본값(0)에서 -0.2로 낮추어 1(Positive) 판정을 더 넓게 적용
+y_pred_new = classifier.decision_function(X_test) > -0.2
+
+# 새 임계값 기준 평가 리포트 확인
+print(confusion_matrix(y_test, y_pred_new))
+print(classification_report(y_test, y_pred_new))
+
+# 📊 정밀도(Precision), 재현율(Recall) 및 PR 커브 정리
+
+## 1. 개념 정의
+
+* **정밀도 (Precision)**: 모델이 `1`(Positive)이라고 예측한 것 중 **실제 `1`인 비율**
+  $$\text{Precision} = \frac{TP}{TP + FP}$$
+  * *의미:* 모델이 맞다고 한 것 중에서 "진짜 맞춘 비율" (오탐/허위 경보 방지)
+* **재현율 (Recall)**: 실제 `1`(Positive)인 전체 데이터 중 **모델이 놓치지 않고 찾아낸 비율**
+  $$\text{Recall} = \frac{TP}{TP + FN}$$
+  * *의미:* 원래 있던 진짜 `1` 중에서 "몇 개나 긁어모았는가" (누락 방지)
+
+---
+
+## 2. 임계값(Threshold)과 트레이드오프 (Trade-off)
+
+`decision_function()`이 반환하는 확신 점수(`y_score`)의 판단 기준선(Threshold)을 조절하면, **정밀도와 재현율은 시소(Trade-off)처럼 반대로 작동**합니다.
+
+from sklearn.metrics import classification_report, confusion_matrix
+
+# 임계값을 기본값(0)에서 -0.2로 낮추어 positive 판정 기준 완화
+y_pred_new = classifier.decision_function(X_test) > -0.2
+
+# 새 임계값 기준 평가 채점표 출력
+print(confusion_matrix(y_test, y_pred_new))
+print(classification_report(y_test, y_pred_new))
+
+| 구분 | 임계값 (Threshold) 조절 | Precision (정밀도) | Recall (재현율) | 대표 활용 분야 |
+| :--- | :--- | :---: | :---: | :--- |
+| **높임** | `> +0.2` (확실한 것만 1로 분류) | **▲ 상승** | **▼ 하락** | 스팸 메일 분류 (정상 메일 차단 방지) |
+| **낮춤** | `> -0.2` (의심스러운 것도 1로 분류) | **▼ 하락** | **▲ 상승** | 암 진단, 금융 사기 탐지 (위험 요소 누락 방지) |
