@@ -7,5 +7,4 @@
 
 2026 08 25 [머신러닝,결측치,이상치,정규화,스케일링](https://github.com/orthia194/aiffel-study/blob/main/2026/08/25/README.md)
 
-2026 08 06 [과제1](https://github.com/orthia194/aiffel-study/blob/main/2026/08/26/project1.ipynb)
-           [과제2](https://github.com/orthia194/aiffel-study/blob/main/2026/08/26/project2.ipynb)
+2026 08 06 [머신러닝 평가 지표 핵심 정리](https://github.com/orthia194/aiffel-study/blob/main/2026/08/26/README.md)
