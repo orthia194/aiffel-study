@@ -9,3 +9,6 @@
 | **핵심 원리** | 가중치($W$)가 너무 커지지 않도록 손실함수에 패널티를 부여하거나 노드를 생략함 | 데이터 분포의 범위를 일정한 구간(예: $0 \sim 1$ 또는 평균 0, 표준편차 1)으로 맞춤 |
 | **주요 기법** | L1 규제 (Lasso), L2 규제 (Ridge), Dropout, Early Stopping | Min-Max Scaling, Standard Scaling, Batch Normalization |
 | **대표 비유** | 모델이 너무 암기하지 못하도록 **족쇄/제약**을 채우는 것 | 선수들의 **체급(스케일)**을 공평하게 맞춰주는 것 |
+
+
+**regularization의 목적은 처음 보는 데이터(validation/test)에서도 잘 맞히는 것**
