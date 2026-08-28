@@ -212,3 +212,14 @@ PyTorch에서 텐서(Tensor)의 **미분(Gradient)** 및 **학습 스위치**를
 > 여러 값이 섞인 텐서인 경우 `.sum()`이나 `.mean()`으로 하나의 대표 오차 점수로 뭉개준 뒤 호출해야 합니다.
 
 ---
+
+## 3. 그래디언트 누적(Accumulation)과 초기화 (`zero_grad()`) ⚠️ [중요]
+
+### 1) 그래디언트 누적 현상
+PyTorch의 `backward()`는 미분값을 **덮어쓰지 않고 기존 `grad` 변수에 더하는(누적) 방식**으로 동작합니다.
+```python
+y1 = x ** 2
+y1.backward() # x.grad -> 6.0
+
+y2 = x ** 2
+y2.backward() # x.grad -> 12.0 (6.0 + 6.0 누적됨!)
