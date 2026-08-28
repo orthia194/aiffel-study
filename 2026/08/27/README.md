@@ -129,3 +129,23 @@ ridge.fit(X, Y)
 print(f"Linear 기울기: {linear.coef_[0]:.4f}")
 print(f"Lasso  기울기: {lasso.coef_[0]:.4f}")
 print(f"Ridge  기울기: {ridge.coef_[0]:.4f}")
+
+
+## 📌 PyTorch Tensor Dimension Cheatsheet
+
+| Dimension | Name | Shape 예시 | 설명 및 주요 활용 예시 |
+| :---: | :---: | :--- | :--- |
+| **0D** | **Scalar** | `()` | **단일 숫자 (점)**<br>• 모델의 최종 손실값 (`loss.item()`)<br>• 정확도 등 평가 지표 수치 |
+| **1D** | **Vector** | `(3,)` | **1차원 배열 (선)**<br>• 단일 샘플의 특성(Feature) 목록<br>• 자연어 처리 단어 임베딩 벡터 |
+| **2D** | **Matrix** | `(100, 10)` | **2차원 표 (면)**<br>• 정형 데이터: `(Batch, Features)`<br>• 흑백 이미지 1장: `(Height, Width)` |
+| **3D** | **3D Tensor** | `(10, 20, 128)` | **시계열 / 텍스트 / 컬러 이미지 1장 (입체)**<br>• 자연어/시계열: `(Batch, Seq_Len, Feature)`<br>• 컬러 이미지 1장: `(Channel, Height, Width)` |
+| **4D** | **4D Tensor** | `(32, 3, 224, 224)` | **컬러 이미지 묶음 (입체 집합)**<br>• 컴퓨터 비전 표준 입력: `(Batch, Channel, Height, Width)` |
+
+<br>
+
+> **💡 차원 확장 흐름 (Visual Intuition)**
+> - **0D (Scalar)** : 점 하나 `3.14`
+> - **1D (Vector)** : 점을 나열한 선 `[1, 2, 3]`
+> - **2D (Matrix)** : 선을 쌓은 2D 표 `[[1, 2], [3, 4]]`
+> - **3D (Tensor)** : 표를 겹쳐 엮은 책 `[컬러 이미지 1장]`
+> - **4D (Tensor)** : 책을 모아둔 책장 묶음 `[컬러 이미지 배치]`
