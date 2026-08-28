@@ -50,3 +50,82 @@ train loss는 약간 올라갈 수 있지만, 대신 validation/test loss가 낮
 
 > 💡 **수식 관계:**  
 > $\text{1 Epoch} = \text{Batch Size} \times \text{Iteration (Steps)}$
+
+# 🎯 머신러닝 규제(Regularization): L1 (Lasso) vs L2 (Ridge)
+
+선형 회귀(Linear Regression) 모델의 과대적합(Overfitting)을 방지하고 일반화 성능을 높이기 위해 사용하는 **L1 규제(Lasso)**와 **L2 규제(Ridge)**의 개념, 차이점, 사용 시기를 정리한 가이드입니다.
+
+---
+
+## 📌 1. 규제(Regularization)란 왜 필요할까?
+
+기본 **선형 회귀(Linear Regression)**는 주어진 데이터의 오차(Loss)만을 최소화하는 방향으로 학습합니다. 
+그러나 데이터에 노이즈가 많거나 특징(Feature/열)의 개수가 너무 많으면, 모델이 학습 데이터에 지나치게 맞춰져 **과대적합(Overfitting)**이 발생합니다.
+
+* **손실 함수 (Basic Loss Function):**
+  $$\text{Loss} = \text{MSE (Mean Squared Error)}$$
+
+규제(Regularization)는 손실 함수에 **가중치(Weight/기울기)에 대한 패널티(Penalty) 항**을 추가하여 가중치가 너무 커지지 않도록 억제하는 기법입니다.
+
+---
+
+## ⚖️ 2. L1 Regularization (Lasso) vs L2 Regularization (Ridge)
+
+| 구분 | **L1 Regularization (Lasso)** | **L2 Regularization (Ridge)** |
+| :--- | :--- | :--- |
+| **수학적 패널티** | 가중치 **절댓값의 합** ($\vert{}w\vert{}$) | 가중치 **제곱의 합** ($w^2$) |
+| **손실 함수** | $\text{MSE} + \alpha \sum \vert{}w_i\vert{}$ | $\text{MSE} + \alpha \sum w_i^2$ |
+| **가중치 변화** | 불필요한 특징의 가중치를 **정확히 0**으로 만듦 | 가중치를 **0에 가깝게 완만하게 줄임** (0은 안 됨) |
+| **주요 효과** | **특징 선택 (Feature Selection)** / 모델 단순화 | **과대적합 방지** / 가중치 안정화 |
+| **주요 사용 상황** | **특징(열/Column)의 개수가 매우 많을 때** | 모든 특징이 어느 정도 의미를 가질 때 |
+| **주의할 점** | $\alpha$가 너무 크면 중요 변수도 0이 되어 **가로선($y=b$)**이 됨 | 특징 개수를 줄이지 않으므로 메모리/계산 유지 |
+
+---
+
+## 🔍 3. 심층 분석: 작동 원리 및 특징
+
+### 🥊 L1 규제 (Lasso - Least Absolute Shrinkage and Selection Operator)
+> **"필요 없는 열(Column)은 싹둑 잘라내어 지워버리는 칼"**
+
+* **핵심 특징:** 
+  * 중요도가 낮은 특징의 가중치(기울기)를 **완전히 `0`**으로 만듭니다.
+  * 100개의 특징 중 유의미한 10개만 남기고 나머지는 제거하는 **Feature Selection** 효과가 있습니다.
+* **가로선 문제 발생 원인:**
+  * 만약 특징이 단 1개만 있는 상태에서 L1 규제 강도($\alpha$)를 너무 높이면, 하나뿐인 특징의 기울기마저 `0`이 되어 $y = 0 \cdot x + b \Rightarrow y = b$ 형태의 **평평한 가로선**을 그려버립니다.
+
+### 🛡️ L2 규제 (Ridge)
+> **"모든 특징을 살려두되, 영향력을 부드럽게 낮추는 정지 마찰력"**
+
+* **핵심 특징:**
+  * 모든 가중치를 **0에 가깝게 균일하게 축소**하지만, 절대 **`0`으로 만들지는 않습니다.**
+  * 다중공선성(Multi-collinearity, 특징들 간의 강한 상관관계)이 존재할 때 매우 안정적인 성능을 보입니다.
+  * 그래프상에서 대각선의 기울기가 완만해질 뿐, 데이터의 전반적인 경향선(대각선)을 계속 유지합니다.
+
+---
+
+## 💻 4. Python (Scikit-Learn) 실습 코드
+
+```python
+import numpy as np
+import pandas as pd
+from sklearn.linear_model import LinearRegression, Lasso, Ridge
+
+# 1. 데이터 준비 (Pandas [[ ]]를 사용하여 처음부터 2차원 DataFrame으로 추출)
+X = iris_df.loc[iris_df['species'] == 'virginica', ['petal length (cm)']] # Shape: (50, 1) - 2D
+Y = iris_df.loc[iris_df['species'] == 'virginica', 'sepal length (cm)']   # Shape: (50,) - 1D
+
+# 2. 기본 선형 회귀 (Linear Regression)
+linear = LinearRegression()
+linear.fit(X, Y)
+
+# 3. L1 규제 회귀 (Lasso) - alpha 조절 필수
+lasso = Lasso(alpha=0.01) # alpha가 너무 크면 기울기가 0이 되어 가로선이 됨
+lasso.fit(X, Y)
+
+# 4. L2 규제 회귀 (Ridge)
+ridge = Ridge(alpha=1.0)
+ridge.fit(X, Y)
+
+print(f"Linear 기울기: {linear.coef_[0]:.4f}")
+print(f"Lasso  기울기: {lasso.coef_[0]:.4f}")
+print(f"Ridge  기울기: {ridge.coef_[0]:.4f}")
