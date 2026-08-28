@@ -129,7 +129,7 @@ ridge.fit(X, Y)
 print(f"Linear 기울기: {linear.coef_[0]:.4f}")
 print(f"Lasso  기울기: {lasso.coef_[0]:.4f}")
 print(f"Ridge  기울기: {ridge.coef_[0]:.4f}")
-
+```
 
 ## 📌 PyTorch Tensor Dimension Cheatsheet
 
