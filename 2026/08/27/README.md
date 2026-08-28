@@ -289,8 +289,50 @@ y2.backward() # x.grad -> 12.0 (6.0 + 6.0 누적됨!)
 | **`nn.Sigmoid()`** | $\frac{1}{1 + e^{-x}}$ | $0 < y < 1$ | **출력층 (이진 분류)** |
 | **`nn.Tanh()`** | $\frac{e^x - e^{-x}}{e^x + e^{-x}}$ | $-1 < y < 1$ | **은닉층 / RNN** |
 
+## 🛠️ PyTorch `torch.nn` 핵심 도구 및 자동화 원리
 
+PyTorch는 복잡한 신경망의 파라미터(가중치 $W$, 편향 $b$) 및 학습 과정을 자동으로 관리해 줍니다.
 
+---
+
+### 1. `torch.nn` 주요 구성 요소를 통한 파이프라인 비교
+
+| 분류 | 직접 수동 구현 (Numpy / Basic Tensor) | `torch.nn` 자동화 도구 | 설명 |
+| :--- | :--- | :--- | :--- |
+| **파라미터 생성** | `W = torch.tensor(..., requires_grad=True)`<br>`b = torch.tensor(..., requires_grad=True)` | **`nn.Linear(in, out)`** | 가중치($W$)와 편향($b$)을 **자동 생성 및 관리** |
+| **순전파 연산** | `y_pred = w * x + b` | **`model(x)`** | 등록된 $W, b$를 사용해 $W \cdot x + b$ 연산 수행 |
+| **오차(손실) 계산**| `loss = ((y_pred - y) ** 2).mean()` | **`loss_fn = nn.MSELoss()`** | 예측값(`pred`)과 실제값(`target`)의 오차 계산 |
+| **파라미터 갱신** | `w -= lr * w.grad`<br>`b -= lr * b.grad` | **`optimizer.step()`** | **모든 $W$와 $b$를 한 번에 갱신** |
+| **기울기 초기화** | `w.grad.zero_()`<br>`b.grad.zero_()` | **`optimizer.zero_grad()`** | **모든 파라미터의 누적 기울기를 0으로 초기화** |
+
+---
+
+### 2. `optimizer.step()`의 내부 동작 원리
+
+`optim.Adam(model.parameters(), lr=0.001)`과 같이 `model.parameters()`를 옵티마이저에 전달하면, 옵티마이저는 모델 내의 **가중치($W$)와 편향($b$) 목록 전체**를 관리하게 됩니다.
+
+따라서 단 한 줄의 `optimizer.step()` 실행만으로 다음과 같은 작업이 자동으로 수행됩니다:
+
+1. **가중치($W$) 업데이트**: $W \leftarrow W - \text{lr} \times W.\text{grad}$
+2. **편향($b$) 업데이트**: $b \leftarrow b - \text{lr} \times b.\text{grad}$
+
+> 💡 **핵심 요약:** 레이어가 수십~수백 개로 늘어나더라도 `optimizer.step()`과 `optimizer.zero_grad()` 한 줄로 모델 전체의 $W$와 $b$를 일괄 처리할 수 있습니다.
+
+---
+
+### 3. `nn.Sequential`을 통한 신경망 조립 및 차원 맞물림
+
+`nn.Sequential`은 여러 레이어와 활성화 함수를 순서대로 연결하는 컨베이어 벨트 역할을 합니다.
+
+```python
+import torch.nn as nn
+
+model = nn.Sequential(
+    nn.Linear(784, 256),  # 입력 784개 -> 출력 256개
+    nn.ReLU(),            # 은닉층 활성화 함수
+    nn.Linear(256, 10)    # 입력 256개 -> 출력 10개 (이전 층의 출력 차원과 반드시 일치해야 함)
+)
+```
 
 
 
