@@ -124,6 +124,72 @@ train loss는 약간 올라갈 수 있지만, 대신 validation/test loss가 낮
 
 ---
 
+## 📌 Batch Normalization (배치 정규화) 연산 및 개념 정리
+
+배치 정규화(Batch Normalization, BN)는 딥러닝 모델의 내부 공변량 변화(Internal Covariate Shift) 문제를 해결하고, 학습 속도와 안정성을 극대화하기 위해 사용하는 필수 전처리/정규화 기법입니다.
+
+---
+
+### 1. 연산 과정 (Step-by-Step)
+
+미니배치(Mini-batch) 단위 $B = \{x_1, x_2, \dots, x_m\}$로 입력 데이터가 들어올 때 다음 4단계를 거칩니다.
+
+1. **배치 평균 계산:**  
+   $$\mu_B = \frac{1}{m} \sum_{i=1}^{m} x_i$$
+2. **배치 분산 계산:**  
+   $$\sigma_B^2 = \frac{1}{m} \sum_{i=1}^{m} (x_i - \mu_B)^2$$
+3. **정규화 (Standardization):**  
+   $$\hat{x}_i = \frac{x_i - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}}$$  
+   *(데이터를 평균 0, 분산 1인 표준정규분포로 변환)*
+4. **스케일 및 이동 (Scale and Shift):**  
+   $$y_i = \gamma \hat{x}_i + \beta$$  
+   *(학습 가능한 파라미터 $\gamma, \beta$를 적용)*
+
+---
+
+### 2. 학습 파라미터 $\gamma$ (Scale)와 $\beta$ (Shift)의 필요성
+
+모든 데이터를 강제로 **[평균 0, 분산 1]**로 고정하면, Sigmoid나 Tanh 같은 활성화 함수에서 선형 구간에 갇혀 **비선형 표현력(Non-linearity)**을 잃어버리는 문제가 발생합니다.
+
+* **$\gamma$ (Scale):** 데이터의 **분산(폭)**을 조절합니다.
+* **$\beta$ (Shift):** 데이터의 **평균(위치)**을 이동시킵니다.
+
+> **💡 핵심 작동 원리:**  
+> 모델은 학습(역전파) 과정을 통해 손실(Loss)을 최소화하는 최적의 $\gamma$와 $\beta$ 조합을 스스로 찾아갑니다.  
+> 예를 들어 **"평균 0, 분산 1"**보다 **"평균 0.5, 분산 2"**일 때 Loss가 더 줄어든다면, 모델은 $\gamma \rightarrow \sqrt{2}$, $\beta \rightarrow 0.5$로 가중치를 자동 업데이트하여 가장 유리한 데이터 분포를 완성합니다.
+
+---
+
+### 3. 학습(Train) vs 추론(Inference) 동작 차이
+
+| 구분 | 학습 시 (Training) | 추론 시 (Inference) |
+|---|---|---|
+| **평균/분산** | 현재 들어온 미니배치의 $\mu_B, \sigma_B^2$ 계산 | 학습 동안 기록된 **이동 평균(`running_mean`) / 이동 분산(`running_var`)** 고정값 사용 |
+| **특징** | 매 배치마다 통계량 계산 | 미리 작성해 둔 통계 기록(컨닝페이퍼)을 꺼내어 단일 데이터 추론 진행 |
+
+---
+
+### 4. PyTorch 구현 예시
+
+PyTorch의 `Autograd` 엔진이 모든 미분 및 파라미터($\gamma, \beta$) 업데이트 과정을 알아서 처리해 주므로, 코드상에서는 레이어 선언만 해주면 됩니다.
+
+```python
+import torch.nn as nn
+
+class MyModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.conv = nn.Conv2d(3, 64, kernel_size=3)
+        # BatchNorm 레이어 선언 (피처 수 지정)
+        self.bn = nn.BatchNorm2d(num_features=64)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.bn(x)     # 자동 정규화 및 Scale/Shift 적용
+        x = self.relu(x)
+        return x
+
 ## 💻 4. Python (Scikit-Learn) 실습 코드
 
 ```python
