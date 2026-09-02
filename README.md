@@ -7,8 +7,11 @@
 2026 08 25 [머신러닝,결측치,이상치,정규화,스케일링](https://github.com/orthia194/aiffel-study/blob/main/2026/08/25/README.md)  
 2026 08 26 [머신러닝 평가 지표 핵심 정리](https://github.com/orthia194/aiffel-study/blob/main/2026/08/26/README.md)  
 2026 08 27 [Regularization](https://github.com/orthia194/aiffel-study/blob/main/2026/08/27/README.md)  
-2026 09 01 [Deep Learning & Computer Vision Core Concepts](https://github.com/orthia194/aiffel-study/blob/main/2026/09/01/README.md)
-2026 09 02 [자연어](https://github.com/orthia194/aiffel-study/blob/main/2026/09/02/README.md)
+2026 09 01 [Deep Learning & Computer Vision Core Concepts](https://github.com/orthia194/aiffel-study/blob/main/2026/09/01/README.md)  
+2026 09 02 [자연어](https://github.com/orthia194/aiffel-study/blob/main/2026/09/02/README.md)  
+
+
+
 
 ---
 
