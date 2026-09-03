@@ -9,6 +9,7 @@
 2026 08 27 [Regularization](https://github.com/orthia194/aiffel-study/blob/main/2026/08/27/README.md)  
 2026 09 01 [Deep Learning & Computer Vision Core Concepts](https://github.com/orthia194/aiffel-study/blob/main/2026/09/01/README.md)  
 2026 09 02 [자연어](https://github.com/orthia194/aiffel-study/blob/main/2026/09/02/README.md)  
+2026 09 02 [워드 임베딩](https://github.com/orthia194/aiffel-study/blob/main/2026/09/03/README.md)  
 
 
 
