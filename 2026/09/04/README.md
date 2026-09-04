@@ -133,7 +133,24 @@ flowchart LR
     D -->|순차 연산 제거 및 고도화| E[Transformer / LLM]
 
 
+---
 
+## 1. 📊 핵심 비교 요약
+
+| 구분 | Bahdanau Attention (바다나우) | Luong Attention (루롱) |
+| :--- | :--- | :--- |
+| **발표 연도 / 논문** | 2014년 (*Neural Machine Translation by Jointly Learning to Align and Translate*) | 2015년 (*Effective Approaches to Attention-based Neural Machine Translation*) |
+| **연산 방식** | **덧셈 기반 (Additive Attention)** | **곱셈/내적 기반 (Dot-Product Attention)** |
+| **디코더 시점** | **이전 타임스텝($t-1$)**의 Hidden State | **현재 타임스텝($t$)**의 Hidden State |
+| **연산 속도** | 상대적으로 느림 (추가 가중치 파라미터 존재) | **매우 빠름** (행렬 곱 기반 GPU 최적화) |
+| **주요 특징** | 어텐션 메커니즘의 시초, 표현력이 정교함 | 코드가 간결하며 최신 **Transformer** 구조의 기초가 됨 |
+
+---
+
+## 💡 요약 및 결론
+
+- **Luong (Dot-Product) Attention:** 구조가 직관적이고 연산 속도가 빨라 실무 및 기본 교육 과정에서 많이 활용되며, **Transformer(BERT, GPT)** 어텐션의 모태가 됩니다.
+- **Bahdanau (Additive) Attention:** 어텐션 메커니즘을 최초로 제안한 모델로, 디코더 셀에 진입하기 전 맥락을 산출하는 정교한 표현력을 제공합니다.
 
 
 
