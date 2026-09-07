@@ -11,6 +11,7 @@
 2026 09 02 [자연어](https://github.com/orthia194/aiffel-study/blob/main/2026/09/02/README.md)  
 2026 09 03 [워드 임베딩](https://github.com/orthia194/aiffel-study/blob/main/2026/09/03/README.md)  
 2026 09 04 [seq2seq](https://github.com/orthia194/aiffel-study/blob/main/2026/09/04/README.md)  
+2026 09 07 [Seq2Seq, LSTM 및 Attention](https://github.com/orthia194/aiffel-study/blob/main/2026/09/07/README.md)  
 
 
 
