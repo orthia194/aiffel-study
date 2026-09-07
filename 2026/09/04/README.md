@@ -131,7 +131,7 @@ flowchart LR
     B -->|인코더-디코더 구조 형성| C[Seq2Seq]
     C -->|병목 현상 및 정보 유실 해결| D[Seq2Seq + Attention]
     D -->|순차 연산 제거 및 고도화| E[Transformer / LLM]
-
+```
 
 ---
 
