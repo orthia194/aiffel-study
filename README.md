@@ -13,7 +13,7 @@
 2026 09 04 [seq2seq](https://github.com/orthia194/aiffel-study/blob/main/2026/09/04/README.md)  
 2026 09 07 [Seq2Seq, LSTM 및 Attention](https://github.com/orthia194/aiffel-study/blob/main/2026/09/07/README.md)  
 2026 09 09 [Transformer](https://github.com/orthia194/aiffel-study/blob/main/2026/09/09/README.md)  
-2026 09 14 [GPT1](https://github.com/orthia194/aiffel-study/blob/main/2026/09/04/project.ipynb)  
+2026 09 14 [GPT1 project](https://github.com/orthia194/aiffel-study/blob/main/2026/09/04/project.ipynb)  
 
 
 
