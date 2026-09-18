@@ -152,3 +152,7 @@
 * **규제 (Regularization):** 과적합을 방지하기 위해 가중치의 크기에 패널티를 부여하여 과도한 학습을 억제하는 기법 (예: L1 Lasso, L2 Ridge, Dropout 등).
 * **배치 정규화 (Batch Normalization):** 레이어 사이에서 미니 배치 단위로 데이터의 분포를 정돈하여 학습을 빠르고 안정적으로 도와주는 기술.
 * **조기 종료 (Early Stopping):** 검증 손실(Validation Loss)이 더 이상 감소하지 않고 다시 증가하기 시작하는 시점(과적합 시작점)에서 학습을 자동으로 중단하는 기술.
+
+---
+
+pip install datasets transformers evaluate pyarrow
