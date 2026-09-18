@@ -57,8 +57,6 @@
 3. **Fine-tuning (지도 학습)**
 * 정제된 [Instruction - Answer] 데이터 적용 ➔ 사용자 지시를 잘 따르는 **Instruct / Chat Model** 완결
 
-Word2Vec에서 시작해 ELMo를 거쳐 BERT와 GPT로 이어지는 **자연어 처리(NLP) 임베딩 패러다임의 발전 흐름**을 깔끔하게 정리해 드릴게요.
-
 ---
 
 ### 1. 1세대: 고정 단어 임베딩 (Word2Vec, GloVe)
