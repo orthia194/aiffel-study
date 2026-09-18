@@ -15,6 +15,7 @@
 2026 09 09 [Transformer](https://github.com/orthia194/aiffel-study/blob/main/2026/09/09/README.md)  
 2026 09 14 [GPT1 project](https://github.com/orthia194/aiffel-study/blob/main/2026/09/04/project.ipynb)  
 2026 09 15 [GPT BERT](https://github.com/orthia194/aiffel-study/blob/main/2026/09/15/README.md)  
+2026 09 17 [Hugging Face](https://github.com/orthia194/aiffel-study/blob/main/2026/09/17/README.md)  
 2026 09 18 [klue/bert-base](https://github.com/orthia194/aiffel-study/blob/main/2026/09/18/project.ipynb)  
 
 
