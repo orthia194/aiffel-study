@@ -20,6 +20,7 @@
 2026 09 21 [Human Alignment](https://github.com/orthia194/aiffel-study/blob/main/2026/09/21/README.md)  
 2026 09 23 [RAG 1](https://github.com/orthia194/aiffel-study/blob/main/2026/09/23/README.md)  
 2026 09 28 [RAG 2](https://github.com/orthia194/aiffel-study/blob/main/2026/09/28/README.md)  
+2026 09 30 [RAG Pipeline](https://github.com/orthia194/aiffel-study/blob/main/2026/09/30/README.md)  
 
 
 
