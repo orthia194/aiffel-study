@@ -8,3 +8,4 @@
 **/models/
 *.tar.gz
 *.zip
+.env
