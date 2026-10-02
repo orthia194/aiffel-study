@@ -136,7 +136,8 @@ MCP는 **JSON-RPC 2.0** 기반의 클라이언트-서버 구조로 동작합니�
 
 
 
-|접근 권한 검증 및 서버 로그 기록 |
+• 접근 권한 검증 및 서버 로그 기록
+
 | **비유** | **회사 사장님 (최종 결정권자)** | **전담 비서 / 통역관** | **외부 전문 외주업체** |
 | **실제 예시** | Cursor IDE, Claude Desktop, **개발자가 직접 만든 에이전트** | Host 코드 내의 MCP Client 객체 | GitHub MCP 서버, SQLite MCP 서버, File System MCP 서버 |
 
