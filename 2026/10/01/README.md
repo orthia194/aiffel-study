@@ -105,7 +105,6 @@ RAG나 QA 시스템에서 정답을 도출하기 위해 **필요한 지식 단�
 
 나중에 다시 찾아보실 수 있도록 이미지 내용을 Clean한 마크다운 문서 서식으로 정리해 드립니다. 프로젝트 README의 `Agent Design Patterns` 섹션 등에 바로 넣어 활용하세요.
 
-```markdown
 ## 🧩 Agent Architecture Design Patterns
 
 본 프로젝트 및 에이전트 시스템 설계 시 참조하는 대표적인 워크플로우 설계 패턴입니다.
@@ -122,4 +121,4 @@ RAG나 QA 시스템에서 정답을 도출하기 위해 **필요한 지식 단�
 | **Human in the Loop** | 사람 개입형 | 중요한 의사결정 시 인간 승인 단계 포함 | 고위험 업무, 최종 결제/발송 프로세스 |
 | **Memory-Enhanced Agent** | 기억 강화형 | 과거 대화 이력 및 학습 내용 저장/활용 | 개인화 비서, 장기 학습 시스템 |
 | **Self-Reflection Agent** | 자기 검토형 | 자신의 실행 결과를 자체 평가 및 재작성 | 고품질 결과물 생성 (Hallucination 제어) |
-```
+
