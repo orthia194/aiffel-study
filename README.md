@@ -30,65 +30,16 @@
 
 ---
 
-# 🚀 PyTorch Tensor Cheatsheet
+### 외워두어야 할 3가지 핵심 요약
 
-파이토치(PyTorch) 기본 텐서 연산 및 핵심 개념을 정리한 요약집입니다.
+| 키워드 | 한 줄 암기 팁 | 언제 쓰는가? (용도) | 주로 같이 쓰는 도구 |
+| :---: | :--- | :--- | :--- |
+| **GGUF** | **"개인용 / 노트북 / CPU"** | • 내 맥북, 로컬 PC에서 테스트할 때<br>• GPU가 없거나 VRAM이 모자랄 때 | Ollama, LM Studio, llama.cpp |
+| **AWQ** | **"실제 서비스 / 고성능 GPU"** | • 회사 엔비디아 서버에 올려 여러 명에게 서비스할 때<br>• 4비트 양자화 품질을 최대한 지키고 싶을 때 | vLLM, SGLang, TensorRT-LLM |
+| **GPTQ** | **"허깅페이스 레거시/기성품"** | • 예전에 나온 모델이거나, 허깅페이스에 미리 올라온 양자화 모델을 바로 갖다 쓸 때 | vLLM, AutoGPTQ, Text-Gen-WebUI |
 
----
-
-## 📌 필수 개념 요약
-
-* **Shape 읽는 법:** `(Batch, Channels, Height, Width)`
-  * `(5,)` → **1차원** (원소 5개짜리)
-  * `(4, 5)` → **2차원** (4행 5열)
-  * `(32, 3, 224, 224)` → **4차원** (32장 배치, RGB 3채널, 224x224)
-* **`dim` 차원 축소 연산:** `t.sum(dim=0)` 지정 시 **해당 차원(0번)이 접혀서 사라짐**
-* **NumPy 연동 (`from_numpy`):** 메모리를 새로 복사하지 않고 **공유(Zero-copy)**하므로, 한쪽을 수정하면 다른 한쪽도 즉시 반영됨
-
----
-
-## 🛠️ 주요 명령어 모음
-
-### 1. 텐서 생성 (Creation)
-| 명령어 | 설명 |
-|---|---|
-| `torch.tensor(data)` | 리스트나 배열을 텐서로 변환 |
-| `torch.zeros(shape)` | 모든 원소가 `0`인 텐서 생성 |
-| `torch.ones(shape)` | 모든 원소가 `1`인 텐서 생성 |
-| `torch.rand(shape)` | 0~1 사이의 균등분포 난수 생성 |
-| `torch.randn(shape)` | 평균 0, 표준편차 1인 정규분포 난수 생성 |
-| `torch.from_numpy(array)` | NumPy 배열을 메모리 공유 텐서로 변환 |
-
-### 2. 모양 및 차원 변경 (Reshaping)
-| 명령어 | 설명 |
-|---|---|
-| `t.shape` / `t.size()` | 텐서의 모양(크기) 확인 |
-| `t.view(...)` / `t.reshape(...)` | 텐서의 모양 변환 (`-1` 사용 시 자동 계산) |
-| `t.squeeze()` | 크기가 1인 차원 제거 (예: `(1, 3, 224, 224)` → `(3, 224, 224)`) |
-| `t.unsqueeze(dim)` | 지정한 위치에 크기가 1인 차원 추가 |
-
-### 3. 연산 및 통계 (Math & Reduction)
-| 명령어 | 설명 |
-|---|---|
-| `A * B` | 원소별 곱 (Element-wise Product) |
-| `A @ B` | 행렬 곱 (Matrix Multiplication) |
-| `t.sum(dim)` / `t.mean(dim)` | 지정한 차원 기준으로 합/평균 계산 |
-| `t.max(dim)` / `t.argmax(dim)` | 최댓값 및 최댓값의 인덱스 위치 반환 |
-
-### 4. 텐서 결합 (Combine)
-| 명령어 | 설명 |
-|---|---|
-| `torch.cat([t1, t2], dim)` | 기존 차원을 따라 텐서 이어붙이기 |
-| `torch.stack([t1, t2], dim)` | 새로운 차원을 만들어 텐서 쌓기 |
-
-### 5. 장치 이동 (Device Control)
-| 명령어 | 설명 |
-|---|---|
-| `t.to('cuda')` / `t.cuda()` | 텐서를 GPU(CUDA) 메모리로 이동 |
-| `t.to('cpu')` / `t.numpy()` | CPU로 이동 후 NumPy 배열로 변환 |
 ---
 # 📖 머신러닝 & 딥러닝 핵심 용어 통합 사전
-
 ---
 
 ## 1. 데이터 전처리 (Data Preprocessing)
@@ -164,4 +115,3 @@
 
 ---
 
-pip install datasets transformers evaluate pyarrow
