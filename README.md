@@ -31,7 +31,7 @@
 
 
 <details>
-<summary>NFC<->NFD 맥, 윈도우</summary>
+<summary>OS 간(Mac ↔ Windows/Linux)의 한글 처리 표준 차이로 인해 발생한 지극히 정상적인 호환성 문제</summary>
 💻 코드 전/후 비교
  
 ```python
