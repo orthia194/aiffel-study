@@ -1,9 +1,9 @@
-# 🚀 나만의 AIFFEL 학습 저장소
-구글 코랩과 VS Code를 연동하여 딥러닝을 공부하는 공간입니다.
+# 🚀 나만의 학습 저장소
 
-### 📅 학습 일지
-2026 08 19
-개발 환경 세팅 (코랩 + VS Code + 깃허브 연동 완료)  
+<details>
+<summary>📅 학습 일지</summary>
+
+2026 08 19  개발 환경 세팅 (코랩 + VS Code + 깃허브 연동 완료)  
 2026 08 25 [머신러닝,결측치,이상치,정규화,스케일링](https://github.com/orthia194/aiffel-study/blob/main/2026/08/25/README.md)  
 2026 08 26 [머신러닝 평가 지표 핵심 정리](https://github.com/orthia194/aiffel-study/blob/main/2026/08/26/README.md)  
 2026 08 27 [Regularization](https://github.com/orthia194/aiffel-study/blob/main/2026/08/27/README.md)  
@@ -24,6 +24,35 @@
 2026 10 01 [Agentic AI](https://github.com/orthia194/aiffel-study/blob/main/2026/10/01/README.md)  
 2026 10 02 [MCP](https://github.com/orthia194/aiffel-study/blob/main/2026/10/02/README.md)  
 2026 10 06 [프롬프트 → 컨텍스트 → 하네스 → 루프](https://github.com/orthia194/aiffel-study/blob/main/2026/10/06/README.md)  
+
+</details>
+
+
+
+
+<details>
+<summary>NFC<->NFD 맥, 윈도우</summary>
+💻 코드 전/후 비교
+ 
+```python
+# ❌ 변경 전 (에러 발생 코드)
+top = rel.parts[0]
+
+# 🎯 변경 후 (정답 코드)
+top = unicodedata.normalize("NFC", rel.parts[0])
+```
+
+💡 왜 이렇게 사용해야 하는가?
+
+1. [0] (인덱싱)을 붙여야 하는 이유
+	• rel.parts는 ('공용', '규정', '문서.pdf')처럼 모든 하위 폴더와 파일명이 담긴 묶음(Tuple) 데이터입니다.
+	• 딕셔너리와 비교하려면 최상위 폴더 이름 딱 하나만 필요하므로, 첫 번째 값만 쏙 빼오기 위해 [0]을 반드시 붙여야 합니다.
+2. unicodedata.normalize("NFC", ...)을 감싸야 하는 이유
+	• 맥(Mac) 환경에서 만든 폴더명은 구글 드라이브에 올라갈 때 한글 자음과 모음이 쪼개진 NFD 방식('ㄱㅗㅇㅇㅛㅇ')으로 저장됩니다.
+	• 반면, 파이썬 코드에 입력한 딕셔너리 키는 완성형 한 글자인 NFC 방식('공용')입니다.
+	• 컴퓨터는 두 글자를 완전히 다른 데이터로 인식하여 UNKNOWN을 뱉기 때문에, 쪼개진 한글을 완성형으로 강제 결합해 주는 normalize("NFC", ...) 과정이 필수적입니다.
+
+</details>
 
 
 
