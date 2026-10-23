@@ -1,0 +1,174 @@
+🛡️ 폐쇄망(Air-Gapped) 엔터프라이즈 RAG 시스템 구축 & 운영 가이드
+
+인터넷이 물리적으로 차단된 폐쇄망(공공, 금융, 국방) 환경에서 외부 의존성 0%로 안정적이고 고성능의 RAG(검색 증강 생성) 시스템을
+구축·배포·운영하기 위한 엔지니어링 표준 핸드북입니다.
+
+📑 목차 (Table of Contents)
+
+1.  외부망 에셋 패키징 & 반입 검증 (Asset Ingress)
+2.  마이크로서비스(MSA) & 표준 프로토콜 설계
+3.  폐쇄망 무결성 검증 & 인프로세스 방화벽
+4.  불사조 아키텍처: 2단계 우아한 성능 저하 (Fallback)
+5.  성능 병목 측정 & 로드 밸런싱 (Scale-Out)
+6.  💡 실무 엔지니어의 시크릿 꿀팁 (Bonus Pro Tips)
+
+1. 외부망 에셋 패키징 & 반입 검증 (Asset Ingress)
+
+인터넷이 되는 온라인 스테이징 망에서 모든 부품을 완전체 '밀키트'로 포장하여 들고 들어갑니다.
+
+① 주문서(requirements.txt) vs 영수증(lock)
+
+  - 주문서: 내가 필요한 핵심 라이브러리 목록 (requests==2.33.1, python-json-logger==4.0.0). 오차를
+    없애기 위해 버전을 ==로 고정.
+  - 영수증(Lock): pip download 실행 시 줄줄이 사탕으로 딸려오는 **전이 의존성(부속 나사/볼트)**까지 모두 포함된 최종
+    .whl 파일들의 목록.
+
+② 타겟 플랫폼 교차 다운로드 (OS 불일치 방지)
+
+내 개발 PC(Mac/Colab)와 폐쇄망 서버(CentOS/Ubuntu)의 리눅스 환경이 다를 때 휠 파일이 거부당하는 참사를 방지합니다.
+
+pip download -r requirements.txt \
+    --python-version 311 \
+    --platform manylinux2014_x86_64 \
+    --only-binary=:all: \
+    -d bundle/
+
+③ 모델 가중치 물리 덤프 (snapshot_download)
+
+허깅페이스 캐시의 바로가기(심볼릭 링크) 깨짐을 방지하고, 물리 파일 그대로 다운로드합니다.
+
+from huggingface_hub import snapshot_download
+
+# ./models/emb 및 ./models/llm 폴더에 온전한 바이너리로 다운로드
+snapshot_download("intfloat/multilingual-e5-small", local_dir="./models/emb", local_dir_use_symlinks=False)
+snapshot_download("Qwen/Qwen2.5-1.5B-Instruct", local_dir="./models/llm", local_dir_use_symlinks=False)
+
+④ 중앙 설계도와 통관 증명서
+
+  - model_registry.json (중앙 설계도):
+    config.json을 동적으로 읽어 차원(dim: 384), 문맥 길이(context: 32768), 모델별 고유 접두사(prefix:
+    query: )를 선언적으로 관리. 모델이 바뀌어도 소스코드 수정 없이 이 JSON만 바꾸면 전체 시스템 자동 반영!
+  - release_manifest.json (통관 증명서):
+    반입되는 모든 .whl 파일과 모델 가중치, Qdrant 도커 이미지의 SHA-256 해시를 기록하여 보안팀 감사(Audit) 및 반입
+    후 손상(Bit Rot) 검증에 사용.
+
+2. 마이크로서비스(MSA) & 표준 프로토콜 설계
+
+거대한 단일 파이썬 파일(Monolith) 대신, 역할별로 포트를 분리한 독립 서버로 띄웁니다.
+
+[ 클라이언트 (rag_answer 오케스트레이터) ]
+  ├── 8001호 : 임베딩 전용 서버 (E5)  ➔ "문장 벡터 변환"
+  ├── 6333호 : Qdrant 벡터 DB         ➔ "유사 사규 초고속 HNSW 검색"
+  └── 8002호 : LLM 전용 서버 (Qwen)   ➔ "자연어 요약 및 답변 생성"
+
+① "맥도날드 포장지에 싸인 수제버거" (OpenAI 호환 규격)
+
+  - 내부 엔진: 오픈소스 로컬 모델 Qwen 1.5B.
+  - 외부 인터페이스: 전 세계 업계 표준인 **OpenAI 규격(/v1/chat/completions)**으로 래핑.
+  - 효과:
+    1.  클라이언트 코드를 단 1줄도 안 고치고 클라우드 GPT-4o ↔ 사내 Qwen 간 스위칭 가능.
+    2.  랭체인, 라마인덱스 등 세상의 모든 오픈소스 AI 도구를 커스텀 어댑터 없이 즉시 연동
+        (M \times N \rightarrow M + N 생태계 통합).
+
+② 주피터/노트북 데브옵스 안정화
+
+  - 좀비 프로세스 청소 (stop_port): 셀 재실행 시 옛날 서버가 포트(Address already in use)를 물고 있는 유령
+    프로세스를 psutil로 추적해 강제 종료.
+  - 쿠버네티스식 준비성 검사 (Readiness Probe): 모델 로딩이 끝날 때까지 1초 간격으로 /health 엔드포인트를 찔러보며
+    안전하게 대기.
+
+3. 폐쇄망 무결성 검증 & 인프로세스 방화벽
+
+코랩이나 외부망에서 '물리적 망분리'를 시뮬레이션하고 증명하기 위해 소프트웨어 레벨의 강제 방화벽을 구축합니다.
+
+1.  라이브러리 빗장 잠그기:
+    os.environ["HF_HUB_OFFLINE"] = "1"
+    os.environ["TRANSFORMERS_OFFLINE"] = "1"
+    허깅페이스가 외부 서버로 최신 버전 조회를 시도하다가 30초 동안 멍때리는(Hang) 현상 원천 차단.
+2.  소켓 멍키패칭 (guarded_connect):
+    파이썬 최하단 socket.socket.connect를 가로채어 127.0.0.1(루프백) 및 사설 대역이 아닌 외부 IP 접속
+    시도시 0.001초 만에 OSError 발생 및 로깅.
+3.  자식 프로세스 단속 (sitecustomize.py):
+    파이썬 실행 시 0순위로 자동 로드되는 훅을 심어, 백그라운드 서브프로세스나 워커들이 몰래 인터넷을 쓰려는 시도까지 100%
+    감전사(?)시킴.
+
+4. 불사조 아키텍처: 2단계 우아한 성능 저하 (Fallback)
+
+"한 방에 불이 났다고 해서 건물 전체를 태워 먹지 마라." (장애 격리 / Blast Radius 최소화)
+
+서버가 다운되어도 사용자에게 500 에러 창을 띄우지 않고, **순수 파이썬 기능(Zero AI)**으로 전환하여 업무 연속성을 100%
+보장합니다.
+
+[질문 수신]
+   │
+   ├── [1단계: 검색 방어선]
+   │    ├─ (정상) 임베딩 서버(8001) + Qdrant 벡터 검색
+   │    └─ (장애 시 🛟) ➔ [keyword_search] 순수 정규식(Ctrl+F) 키워드 매칭으로 사규 확보!
+   │                         (mode: "degraded_search")
+   │
+   └── [2단계: 생성 방어선]
+        ├─ (정상) LLM 서버(8002)가 친절한 요약 답변 생성
+        └─ (장애 시 🛟) ➔ "답변 생성 일시 불가" 안내문 + [사규 원문 직배송(+ ctx)]!
+                             (mode: "degraded_generate" 또는 "degraded_both")
+
+  - 결과: AI 서버가 전부 사망해도, 사용자는 질문과 가장 관련 있는 사규 원문을 즉시 열람하여 본인 업무를 해결할 수 있음 (SRE
+    무중단 달성).
+
+5. 성능 병목 측정 & 로드 밸런싱 (Scale-Out)
+
+① 단일 인스턴스의 병목 (트랙 1 실측 결과)
+
+  - 단일 요청 지연: embed 16ms(0.5%) + search 4.1ms(0.1%) + generate 3215.7ms(99.4%) ➔
+    LLM 생성이 지연의 99%를 차지하는 절대 병목.
+  - 동시 요청 2개 ➔ 4개 증가 시:
+      - 평균 지연: 4.3초 ➔ 16.1초 (4배 폭증)
+      - p95 지연: 31.8초 (사용자가 창을 닫아버리는 임계점 도달)
+      - 처리량(Throughput): 0.46 ➔ 0.24 req/s (오히려 반토막!)
+        ➔ 비배치 환경에서 단일 GPU를 두고 스레드 경합(Thrashing) 및 큐잉 지연(Queueing Delay)이 누적된 결과.
+
+② 이중화와 최소 부하 분산 (트랙 5 실측 결과)
+
+8002호, 8003호에 LLM 서버를 2대 띄우고 로드 밸런싱 적용.
+
+1대 가동 : 0.34 req/s
+2대 가동 : 0.72 req/s  (무려 2.13배 성능 떡상! 🚀)
+
+  - 왜 라운드 로빈(1-2-1-2) 대신 Least-Inflight를 쓰는가?
+    LLM은 질문에 따라 답변 길이(생성 시간)가 천차만별임. 1번이 장문 쓰느라 15초 동안 끙끙대는데 기계적으로 새 일을 던지면 병목
+    발생.
+    ➔ min(healthy, key=lambda u: inflight): 현재 일하고 있는 손님 수가 가장 적은(손 비어 있는) 인스턴스에
+    동적 배분!
+  - 무중단 장애 절체(Failover):
+    테스트 중 8003번 서버를 강제 종료(terminate)해도, 로드 밸런서가 즉시 8002호로 요청을 우회시켜 사용자는 에러 없이 정상
+    응답 수신.
+
+6. 💡 실무 엔지니어의 시크릿 꿀팁 (Bonus Pro Tips)
+
+Tip 1. QLoRA 어댑터 반입 치트키 (용량 다이어트)
+
+  - 사내 사규나 말투가 바뀔 때마다 15GB~30GB짜리 베이스 모델을 매번 보안 결재받아 반입하려면 며칠씩 소요됨.
+  - 해결책: 베이스 모델(Qwen)은 폐쇄망에 최초 1회만 반입. 외부망에서 QLoRA로 학습시킨 수십 MB짜리
+    어댑터(adapter_model.safetensors + adapter_config.json)만 가볍게 반입하여
+    PeftModel.from_pretrained()로 런타임 합체!
+
+Tip 2. CPU vs GPU 스케일링 공식
+
+  - 임베딩 모델 (CPU 바운드, 가벼움):
+    CPU 코어 수(예: 4코어)에 맞춰 프로세스를 4개로 복제해서 로드 밸런싱하면 처리량이 정직하게 4배 증가.
+  - LLM 모델 (GPU 바운드, VRAM 무거움):
+    프로세스를 무턱대고 늘리면 모델 가중치가 VRAM을 중복으로 차지해 CUDA OOM(메모리 폭발) 발생. GPU 한 장당
+    프로세스는 1~2개로 제한하고 내부 배치(Batching)로 해결해야 함.
+
+Tip 3. 폐쇄망 반입 'Plan A / Plan B 투트랙' 법칙
+
+  - Plan A (도커 컨테이너, 베스트): docker save -o rag.tar로 완제품을 구워 들어감. 현장 도커 지원 시 5분 만에
+    배포 완료.
+  - Plan B (네이티브 번들, 최후의 보루): 고객사 보안팀이 "도커 금지, root 권한 불가"를 선언할 때를 대비해 오늘 배운
+    bundle/ 폴더와 requirements.txt를 반드시 지참. 일반 사용자 계정 홈 디렉터리에서 venv로 10분 만에 단독 기동
+    성공.
+
+Tip 4. 프로덕션 가속 끝판왕: vLLM
+
+  - 실습에서 만든 llm_server.py는 원리 학습용.
+  - 실무 프로덕션에서는 PagedAttention과 C++/CUDA 연속 배칭이 내장된 **vLLM 공식 도커
+    이미지(vllm/vllm-openai)**를 통째로 반입하여 띄우면 속도가 34배(초당 6080 토큰) 더 빨라짐.
