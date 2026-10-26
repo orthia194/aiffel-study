@@ -24,6 +24,15 @@
 2026 10 01 [Agentic AI](https://github.com/orthia194/aiffel-study/blob/main/2026/10/01/README.md)  
 2026 10 02 [MCP](https://github.com/orthia194/aiffel-study/blob/main/2026/10/02/README.md)  
 2026 10 06 [프롬프트 → 컨텍스트 → 하네스 → 루프](https://github.com/orthia194/aiffel-study/blob/main/2026/10/06/README.md)  
+2026 10 07 [텍스트 RAG의 사각지대](https://github.com/orthia194/aiffel-study/blob/main/2026/10/06/README.md)  
+2026 10 08 [오픈소스 LLM 비교 분석과 앱 설계](https://github.com/orthia194/aiffel-study/blob/main/2026/10/06/README.md)  
+2026 10 12 [LoRA, QLoRA](https://github.com/orthia194/aiffel-study/blob/main/2026/10/06/README.md)  
+2026 10 19 [욕 감지](https://github.com/orthia194/aiffel-study/blob/main/2026/10/06/README.md)  
+2026 10 20 [🏢 사내 비정형 문서 데이터 정제 및 합성 QA 데이터셋 구축 파이프라인](https://github.com/orthia194/aiffel-study/blob/main/2026/10/06/README.md)  
+2026 10 21 [파이프라인 데이터 모델링](https://github.com/orthia194/aiffel-study/blob/main/2026/10/06/README.md)  
+2026 10 22 [⚡ 벡터 데이터베이스(Vector DB) 심층 아키텍처 및 검색 최적화 가이드](https://github.com/orthia194/aiffel-study/blob/main/2026/10/06/README.md)  
+2026 10 23 [🛡️ 폐쇄망(Air-Gapped) 엔터프라이즈 RAG 시스템 구축 & 운영 가이드](https://github.com/orthia194/aiffel-study/blob/main/2026/10/06/README.md)  
+2026 10 26 [🏭 고순도 인스트럭션 데이터셋 자동화(Dataset Automation) 파이프라인 구축 가이드](https://github.com/orthia194/aiffel-study/blob/main/2026/10/06/README.md)  
 
 </details>
 
