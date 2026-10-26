@@ -27,7 +27,7 @@
 2026 10 07 [텍스트 RAG의 사각지대](https://github.com/orthia194/aiffel-study/blob/main/2026/10/07/README.md)  
 2026 10 08 [오픈소스 LLM 비교 분석과 앱 설계](https://github.com/orthia194/aiffel-study/blob/main/2026/10/08/README.md)  
 2026 10 12 [LoRA, QLoRA](https://github.com/orthia194/aiffel-study/blob/main/2026/10/12/README.md)  
-2026 10 19 [욕 감지](https://github.com/orthia194/aiffel-study/blob/main/2026/10/19/README.md)  
+2026 10 19 [욕 감지](https://github.com/orthia194/aiffel-study/blob/main/2026/10/19/test.ipynb)  
 2026 10 20 [🏢 사내 비정형 문서 데이터 정제 및 합성 QA 데이터셋 구축 파이프라인](https://github.com/orthia194/aiffel-study/blob/main/2026/10/20/README.md)  
 2026 10 21 [파이프라인 데이터 모델링](https://github.com/orthia194/aiffel-study/blob/main/2026/10/21/README.md)  
 2026 10 22 [⚡ 벡터 데이터베이스(Vector DB) 심층 아키텍처 및 검색 최적화 가이드](https://github.com/orthia194/aiffel-study/blob/main/2026/10/22/README.md)  
