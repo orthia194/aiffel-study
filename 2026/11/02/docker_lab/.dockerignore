@@ -1,0 +1,7 @@
+.git
+__pycache__/
+.venv/
+**/.env
+**/api_keys.json
+models/
+logs/

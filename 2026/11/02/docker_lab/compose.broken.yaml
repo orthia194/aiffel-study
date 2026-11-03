@@ -1,0 +1,25 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.broken
+    ports:
+      - "127.0.0.1:8000:8000"
+    env_file:
+      - .env
+    volumes:
+      # [버그 3] 컨테이너 내부 코드는 /app/models/sentiment_weights.json을 찾는데 잘못된 경로(/app/wrong_models)에 마운트됨!
+      - ./models:/app/models:ro
+      - ./logs:/app/logs
+
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+    ports:
+      - "127.0.0.1:8501:8501"
+    environment:
+      # [버그 2] ui 컨테이너 안에서 localhost:8000을 부르면 ui 컨테이너 자기 자신을 찌르다가 실패합니다!
+      - API_BASE_URL=http://api:8000
+    depends_on:
+      - api

@@ -1,0 +1,3 @@
+2026-11-02 05:28:58,051 INFO [private_llm_api] predict_ok label=positive score=2.5 source=private-ko-sentiment-v1
+2026-11-02 05:54:27,430 INFO [private_llm_api] predict_ok label=positive score=0.1 source=private-ko-sentiment-v1
+2026-11-02 06:00:35,395 INFO [private_llm_api] predict_ok label=positive score=2.5 source=private-ko-sentiment-v1

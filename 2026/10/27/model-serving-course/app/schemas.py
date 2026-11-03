@@ -1,45 +1,25 @@
-"""
-API 입출력 스키마 정의
-"""
-
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
+class PixelPredictRequest(BaseModel):
+    pixels: list[list[float]] = Field(..., description="28x28 픽셀 배열")
+    return_probabilities: bool = Field(default=False)
+    @field_validator("pixels")
+    @classmethod
+    def validate_pixels(cls, v):
+        if len(v) != 28:
+            raise ValueError(f"28행이어야 합니다. 현재: {len(v)}행")
+        for i, row in enumerate(v):
+            if len(row) != 28:
+                raise ValueError(f"각 행은 28열이어야 합니다. {i}번째 행: {len(row)}열")
+        return v
 
-class PredictRequest(BaseModel):
-    """모델 추론 요청 스키마"""
-    pixel_values: list[float] = Field(
-        ...,
-        min_length=784,       # 28 * 28 = 784
-        max_length=784,
-        description="28x28 이미지의 픽셀 값 (784개). 0.0~1.0 범위.",
-        examples=[[0.0] * 784],   # Swagger UI에 예시로 표시
-    )
-    return_probabilities: bool = Field(
-        default=False,
-        description="True로 설정하면 전체 클래스별 확률을 함께 반환합니다.",
-    )
-
+class ImagePredictRequest(BaseModel):
+    image_base64: str = Field(..., min_length=1)
+    return_probabilities: bool = Field(default=False)
 
 class PredictResponse(BaseModel):
-    """모델 추론 응답 스키마"""
-    label: int = Field(
-        description="예측된 숫자 (0~9)",
-    )
-    confidence: float = Field(
-        description="예측 확신도 (0.0~1.0)",
-    )
-    probabilities: Optional[list[float]] = Field(
-        default=None,
-        description="각 클래스(0~9)별 확률. return_probabilities=True일 때만 포함.",
-    )
-    model_version: str = Field(
-        default="1.0.0",
-        description="사용된 모델 버전",
-    )
-
-
-class HealthResponse(BaseModel):
-    """헬스체크 응답 스키마"""
-    status: str
-    model_loaded: bool
+    success: bool = Field(description="성공 여부")
+    predicted_class: str = Field(description="예측 숫자 (0~9)")
+    confidence: float = Field(description="확신도", ge=0.0, le=1.0)
+    probabilities: Optional[dict[str, float]] = Field(default=None)

@@ -1,0 +1,8 @@
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY app/ ./app/
+EXPOSE 8000
+# [버그 1] 컨테이너 내부에서 127.0.0.1로 띄우면 컨테이너 밖에서 들어오는 패킷을 모두 거부합니다!
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

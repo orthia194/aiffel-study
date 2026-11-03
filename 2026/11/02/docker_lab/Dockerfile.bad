@@ -1,0 +1,11 @@
+FROM python:3.11-slim
+WORKDIR /app
+
+# [나쁜 예] 소스 코드 전체를 먼저 복사하면 코드 한 줄만 고쳐도 아래 pip install 캐시가 매번 깨집니다!
+COPY app/ ./app/
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+ENV MODEL_VERSION="1.0.0"
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
