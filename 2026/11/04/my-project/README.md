@@ -93,36 +93,34 @@ streamlit run frontend/app.py
 
 ### 📸 결과 스크린샷
 
-> *실제 구동 화면 캡처 이미지를 `docs/images/` 디렉토리에 추가 후 경로를 지정해 주세요.*
+<img width="1336" height="267" alt="image" src="https://github.com/user-attachments/assets/a39d2774-fa76-47dc-b87b-8e794495c3ba" />
+
 
 #### 1) 정상 분석 결과 (200 OK)
-![정상 추론 화면](docs/images/result_success.png)
-* "배우들 연기도 훌륭하고 스토리 전개도 몰입감 넘치네요!" 입력 시 **긍정 (신뢰도 98.7%)** 출력 및 환영 배지 표시.
+<img width="754" height="764" alt="image" src="https://github.com/user-attachments/assets/4aceb527-a1a6-4082-a7db-2a2bc49fd86f" />
+
 
 #### 2) 유효하지 않은 입력 예외 처리 (422 Unprocessable Entity)
-![입력 검증 에러](docs/images/result_validation_error.png)
-* 단순 공백(`"   "`)이나 완성되지 않은 자음(`"ㅇ   "`) 입력 시 Pydantic 검증기가 감지하여 사용자에게 재입력 유도 경고창 표출.
+<img width="729" height="736" alt="image" src="https://github.com/user-attachments/assets/83044546-0eb4-4d86-a5b1-bf499e0c4faa" />
+
 
 #### 3) 잘못된 API Key 입력 시 인증 차단 (401 Unauthorized)
-![인증 실패 에러](docs/images/result_auth_error.png)
-* 올바르지 않은 키 입력 시 사이드바 및 요청 결과에 즉시 접근 거절 메시지 표출.
+
+<img width="709" height="707" alt="image" src="https://github.com/user-attachments/assets/31e6b628-7780-4c74-84f2-4c8ecaeeb34f" />
 
 ---
 
 ## 5. 회고 (KPT)
 
 ### 🟢 Keep (지속하고 발전시킬 점)
-* **환경 맞춤형 경량 모델 선정:** 500MB 이하라는 CPU 제약 조건 속에서 용량이 55MB에 불과한 `koelectra-small-v3-nsmc`를 선택하여, CPU 환경임에도 0.05초 내외의 빠른 추론 응답 속도를 확보한 점.
-* **관심사 분리(SoC):** 인증(`auth`), 스키마(`schemas`), 모델 추론(`model_service`), 서버 제어(`main`), 화면(`frontend`)의 5개 컴포넌트로 역할을 명확히 쪼개어 코드의 유지보수성을 극대화한 점.
-* **ML 서빙 특화 비동기 아키텍처 구현:** 로컬 딥러닝 연산의 CPU 독점(블로킹) 문제를 막기 위해 `ThreadPoolExecutor` 작업자 수를 명시적으로 제한하고 `run_in_executor`로 비동기 브릿지를 구축한 점.
+* **환경 맞춤형 경량 모델 선정:** 500MB 이하라는 CPU 조건 중, 용량이 55MB에 불과한 `koelectra-small-v3-nsmc`를 선택하여, CPU 환경임에도 0.05초 내외의 빠른 추론 응답 속도를 확보
+* **관심사 분리(SoC):** 인증(`auth`), 스키마(`schemas`), 모델 추론(`model_service`), 서버 제어(`main`), 화면(`frontend`)의 5개 컴포넌트로 역할을 명확히 쪼개어 코드의 유지보수성
+* **ML 서빙 특화 비동기 아키텍처 구현:** 로컬 딥러닝 연산의 CPU 독점(블로킹) 문제를 막기 위해 `ThreadPoolExecutor` 작업자 수를 명시적으로 제한하고 `run_in_executor`로 비동기 브릿지를 구축
 
 ### 🔴 Problem (발생했던 문제와 원인)
-* **공백 및 단일 자음 검증 허점:** 초기 검증 규칙(`min_length=1`)으로 인해 사용자가 `"   "` 뒤에 `"ㅇ"` 하나만 덧붙여도 유효한 문장으로 인식되어 백엔드로 무의미한 추론 요청이 전달되었던 문제.
-* **코드 핫 리로드 시 프로세스 다운:** 주피터 노트북 환경에서 파일을 연속으로 저장하는 동안 `uvicorn --reload` 프로세스가 임포트 충돌로 종료되어 일시적으로 `ConnectionError`가 발생했던 문제.
-* **비동기(`async`)와 스레드풀의 역할 혼선:** 순수 I/O 대기와 CPU 바운드 연산의 차이점을 완전히 구분하지 못해 로컬 추론에서 왜 별도 스레드풀 제어가 필요한지에 대해 초기 개념 혼선이 있었던 점.
+* **공백 및 단일 자음 검증 허점:** 초기 검증 규칙(`min_length=1`)으로 인해 사용자가 `"   "` 뒤에 `"ㅇ"` 하나만 덧붙여도 유효한 문장으로 인식되어 백엔드로 무의미한 추론 요청이 전달됨
 
 ### 🔵 Try (앞으로 시도해볼 개선점)
-* **추론 결과 캐싱 (Inference Caching):** 동일한 문장이 반복 입력될 경우 모델을 다시 돌리지 않고 메모리 캐시(Redis 또는 `lru_cache`)에서 즉시 꺼내주는 응답 캐싱 레이어 도입.
 * **동시 다발적 요청을 위한 배치(Batch) 엔드포인트 구축:** 단일 텍스트(`text: str`)뿐만 아니라 리스트 형태(`texts: list[str]`)의 대량 입력을 한 번에 묶어 추론하는 배치 API 확장.
 * **Docker 컨테이너화:** 백엔드와 프론트엔드를 Docker Compose로 묶어 로컬 가상환경 의존성 없이 명령어 한 줄로 전 세계 어디서든 동일하게 띄울 수 있도록 배포 패키징 구현.
 ```
