@@ -33,6 +33,7 @@
 2026 10 22 [⚡ 벡터 데이터베이스(Vector DB) 심층 아키텍처 및 검색 최적화 가이드](https://github.com/orthia194/aiffel-study/blob/main/2026/10/22/README.md)  
 2026 10 23 [🛡️ 폐쇄망(Air-Gapped) 엔터프라이즈 RAG 시스템 구축 & 운영 가이드](https://github.com/orthia194/aiffel-study/blob/main/2026/10/23/README.md)  
 2026 10 26 [🏭 고순도 인스트럭션 데이터셋 자동화(Dataset Automation) 파이프라인 구축 가이드](https://github.com/orthia194/aiffel-study/blob/main/2026/10/26/README.md)  
+2026 11 09 [LLM 경량화 푸르닝/지식 증류](https://github.com/orthia194/aiffel-study/blob/main/2026/11/09/README.md)  
 
 </details>
 
