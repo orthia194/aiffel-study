@@ -34,6 +34,11 @@
 2026 10 23 [🛡️ 폐쇄망(Air-Gapped) 엔터프라이즈 RAG 시스템 구축 & 운영 가이드](https://github.com/orthia194/aiffel-study/blob/main/2026/10/23/README.md)  
 2026 10 26 [🏭 고순도 인스트럭션 데이터셋 자동화(Dataset Automation) 파이프라인 구축 가이드](https://github.com/orthia194/aiffel-study/blob/main/2026/10/26/README.md)  
 2026 11 09 [LLM 경량화 푸르닝/지식 증류](https://github.com/orthia194/aiffel-study/blob/main/2026/11/09/README.md)  
+2026 11 10 [LLM 4-bit Post-Training Quantization (GPTQ vs AWQ)](https://github.com/orthia194/aiffel-study/blob/main/2026/11/10/README.md)  
+2026 11 11 [High-Throughput LLM Serving & Production MLOps Pipeline](https://github.com/orthia194/aiffel-study/blob/main/2026/11/11/README.md)  
+2026 11 12 [vLLM 심화 서빙 및 용량 산정](https://github.com/orthia194/aiffel-study/blob/main/2026/11/12/README.md)  
+2026 11 13 [LLM 서빙 엔진 성능 벤치마크: vLLM vs TensorRT-LLM](https://github.com/orthia194/aiffel-study/blob/main/2026/11/13/README.md)  
+2026 11 16 [LLM RAG 서빙 최적화 & 병목 분석](https://github.com/orthia194/aiffel-study/blob/main/2026/11/16/README.md)  
 
 </details>
 
