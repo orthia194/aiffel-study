@@ -443,7 +443,150 @@ RAG 시스템은 하나의 모델이 모든 것을 다 하는 것이 아니라, 
 * **KV 캐시 :** 새로운 단어가 나올 때마다 과거를 매번 다시 계산하지 않도록, **이미 지나간 단어들의 $K$와 $V$만 GPU 메모리에 서류철로 쌓아두고 재사용하는 고속 서빙 기술!**
 
 </details>
+<details>
+<summary>🧠 Transformer Attention Mechanisms</summary>
+	
+# 🧠 Transformer Attention Mechanisms 정리
 
+---
+
+## 📌 한눈에 보는 핵심 비교표
+
+| 분류 | 어텐션 명칭 | 핵심 아이디어 | 주요 해결 과제 | 대표 활용처 |
+| :--- | :--- | :--- | :--- | :--- |
+| **기본 / KV 최적화** | **MHA** (Multi-Head) | Q, K, V 헤드 1:1 독립 구성 | 다양한 표현 공간 확보 | 초기 Transformer, GPT, BERT |
+| **기본 / KV 최적화** | **MQA** (Multi-Query) | 모든 Q가 단일 K, V 헤드 공유 | KV 캐시 극단적 축소 | 초기 경량 추론 모델 (PaLM 등) |
+| **기본 / KV 최적화** | **GQA** (Grouped-Query) | Q 그룹별 K, V 헤드 공유 | 품질과 KV 캐시 효율의 균형 | Llama 3, Qwen, Mistral 등 현대 표준 |
+| **기본 / KV 최적화** | **MLA** (Multi-Head Latent) | K·V 결합 저차원 잠재 벡터 압축 | 초장문·고동시성 KV 메모리 절감 | DeepSeek-V2 / V3 계열 |
+| **초장문 / 희소·선형** | **SWA** (Sliding Window) | 주변(또는 직전) 윈도우($W$) 내만 참조 | $O(N^2)$ 연산 완화 및 로컬 문맥 집중 | Mistral, Gemma (전역 어텐션과 혼합) |
+| **초장문 / 희소·선형** | **Sparse Attention** | 로컬 + 전역 + 일부 패턴 선택 계산 | 긴 시퀀스 연산 및 메모리 절감 | Longformer, BigBird |
+| **초장문 / 희소·선형** | **Linear Attention** | 커널 근사로 결합 순서 변경 ($O(N)$) | 시퀀스 길이에 비례하는 선형 복잡도 | Qwen3-Next, Kimi Linear, SSM 하이브리드 |
+| **초장문 / 희소·선형** | **NSA / MoBA** | 하드웨어 블록 단위 동적 희소 선택 | 초장문에서 정확도와 커널 속도 동시 확보 | DeepSeek NSA, Kimi MoBA 등 장문 LLM |
+| **구조 / 모달리티** | **Cross-Attention** | Q와 K·V의 출처(모달리티) 분리 | 서로 다른 데이터 간 정렬 및 조건 주입 | VLM, Diffusion, Encoder-Decoder |
+| **구조 / 모달리티** | **Causal Self-Attention** | 미래 토큰 마스킹(상삼각 영역 차단) | 자기회귀(Autoregressive) 텍스트 생성 | GPT 계열 디코더 모델 |
+| **구조 / 모달리티** | **Bidirectional Attention** | 양방향 전체 토큰 참조 | 문맥 이해 및 특징 추출 | BERT, ViT 인코더 |
+| **구조 / 모달리티** | **Windowed / Axial** | 2D/3D 패치 윈도우 또는 축 단위 분할 | 고해상도 이미지·영상 연산량 축소 | Swin Transformer, 비디오 모델 |
+| **커널 / 시스템** | **FlashAttention** | 타일링 + 온라인 소프트맥스 (SRAM 활용) | GPU HBM 메모리 I/O 병목 제거 | 현대 학습·추론 필수 커널 (v1 ~ v4) |
+| **커널 / 시스템** | **PagedAttention** | OS 가상 메모리 페이징 방식 KV 관리 | KV 캐시 메모리 단편화 제거 | vLLM 등 현대 LLM 서빙 엔진 |
+| **커널 / 시스템** | **Ring Attention** | 다중 GPU 간 KV 블록 링(Ring) 순환 | 단일 GPU VRAM을 넘는 초장문 처리 | 수백만 토큰 컨텍스트 분산 학습·추론 |
+
+---
+
+## 1. 기본기 & KV 캐시 최적화 (LLM 추론 효율의 핵심)
+
+자기회귀(Autoregressive) 생성(특히 Decode 단계)에서는 이전 토큰들의 Key와 Value를 저장하는 **KV Cache**가 GPU 메모리 용량과 대역폭 병목의 주원인이 됩니다.
+
+### 🔹 MHA (Multi-Head Attention)
+* **구조:** Query($Q$), Key($K$), Value($V$) 헤드가 1:1로 매칭됩니다.
+* **특징:** 각 헤드가 서로 다른 관점의 관계를 학습할 수 있어 표현력이 뛰어나지만, 시퀀스가 길어질수록 KV 캐시 크기가 선형으로 급증합니다.
+
+### 🔹 MQA (Multi-Query Attention)
+* **구조:** 여러 개의 $Q$ 헤드가 **단 1개의 $K, V$ 헤드**를 공유합니다.
+* **특징:** KV 캐시 메모리를 크게 줄여 디코딩 속도를 높이지만, 표현력 제약으로 인해 모델 품질이 저하될 수 있습니다.
+
+### 🔹 GQA (Grouped-Query Attention)
+* **구조:** $Q$ 헤드를 $G$개의 그룹으로 나누고, 각 그룹마다 1개의 $K, V$ 헤드를 할당합니다. ($G=1$이면 MQA, $G=H$이면 MHA; $H$는 전체 $Q$ 헤드 수)
+* **특징:** MHA 수준의 성능을 유지하면서 KV 캐시를 효과적으로 절감하여 현재 대부분 LLM의 **사실상 표준**(De facto standard)으로 자리 잡았습니다.
+
+### 🔹 MLA (Multi-Head Latent Attention)
+* **구조:** $K$와 $V$를 그대로 캐싱하지 않고 하나의 **저차원 잠재 벡터(Latent Vector)로 결합 압축해 저장**하며(위치 정보용 RoPE 벡터는 별도 분리), 추론 시 이를 복원하거나 **가중치 흡수(Weight Absorption)** 기법으로 복원 과정 없이 잠재 공간에서 직접 연산합니다.
+* **특징:** 헤드 수만 줄이는 GQA보다 압축률이 뛰어나면서도 MHA 수준의 표현력을 유지할 수 있어, 대용량 배치 서빙과 초장문 추론에서 메모리 효율이 매우 높습니다.
+
+---
+
+## 2. 초장문 처리를 위한 희소·슬라이딩·선형 어텐션
+
+표준 어텐션(Vanilla Attention)이 시퀀스 길이 $N$에 대해 연산량($O(N^2)$)과 장문 처리 비용이 급증하는 한계를 극복하기 위한 변형들입니다.
+
+### 🔹 SWA (Sliding Window Attention)
+* **원리:** 각 토큰이 전체 문맥 대신 주변(Causal 디코더에서는 직전) $W$개의 토큰만 참조합니다.
+* **특징:** 트랜스포머 레이어가 $L$층 쌓이면 실질적인 수용 영역(Receptive Field)이 약 $L \times W$로 확장됩니다. 보통 전체 문맥을 보는 Global Attention 레이어와 교차 배치하여 사용합니다.
+
+### 🔹 Sparse Attention (희소 어텐션)
+* **원리:** 어텐션 행렬의 모든 원소를 계산하지 않고, 로컬 윈도우 + 전역 요약 토큰 + 무작위 연결 등 일부 패턴만 계산합니다.
+* **대표 모델:** Longformer, BigBird
+
+### 🔹 Linear Attention (선형 어텐션)
+* **원리:** $\text{Softmax}(QK^T)V$ 대신 커널 함수 $\phi$를 도입하여 행렬 곱 결합 순서를 $\phi(Q)(\phi(K)^TV)$로 변경합니다. (자기회귀 모델에서는 미래 토큰 참조를 막기 위해 누적 상태 $S_t$를 갱신하는 RNN·청크 병렬 형태로 계산합니다.)
+* **특징:** 시퀀스 길이에 따른 연산 복잡도를 $O(N^2)$에서 $O(N)$으로 낮추며, Mamba 등 SSM이나 Gated DeltaNet·KDA 기반의 하이브리드 아키텍처와 이론적·실무적으로 긴밀히 연결됩니다.
+
+### 🔹 NSA (Native Sparse Attention) / MoBA
+* **원리:** 토큰 단위가 아닌 **하드웨어 친화적인 블록 단위**로 중요한 KV 블록만 동적으로 선택(라우팅)하거나(MoBA), 이를 압축·슬라이딩 윈도우 경로와 결합해 어텐션을 수행합니다(NSA).
+* **특징:** 이론적 연산량(FLOPs) 감소뿐만 아니라 실제 GPU 커널 실행 속도와 장문 검색 정확도를 동시에 잡는 데 초점을 맞춥니다.
+
+---
+
+## 3. 구조 및 모달리티에 따른 필수 어텐션
+
+### 🔹 Cross-Attention (교차 어텐션)
+* **원리:** $Q$는 타깃 시퀀스(디코더, 이미지 잠재 표현 등)에서 생성하고, $K$와 $V$는 외부 컨텍스트(인코더 출력, 텍스트 프롬프트 등)에서 가져옵니다.
+* **활용:** VLM(일부 크로스 어텐션 구조), 이미지 생성(Diffusion), Encoder-Decoder 번역 모델에서 모달리티 간 정보를 결합할 때 필수적입니다.
+
+### 🔹 Causal Self-Attention vs Bidirectional Self-Attention
+* **Causal (Masked):** 미래 위치(상삼각 영역)의 어텐션 스코어를 $-\infty$로 마스킹하여 이전 토큰만 참조하게 합니다. (GPT 계열)
+* **Bidirectional:** 마스킹 없이 시퀀스 전체를 양방향으로 참조합니다. (BERT, ViT 인코더)
+
+### 🔹 2D / Windowed / Axial Attention
+* **원리:** 이미지·영상 데이터에서 전체 패치 간 어텐션 대신, 특정 윈도우 내부(Swin Transformer의 Shifted Window 등) 또는 가로·세로 축(Axial) 단위로 나누어 연산합니다.
+
+---
+
+## 4. 커널 및 분산 시스템 레벨 어텐션
+
+수식 자체의 변경이 아니라 **GPU 메모리 계층 구조(HBM ↔ SRAM)와 다중 GPU 통신**을 최적화하여 실제 속도와 확장성을 끌어올리는 기술입니다.
+
+### 🔹 FlashAttention (v1 ~ v4)
+* **핵심:** 거대한 $N \times N$ 어텐션 행렬을 느린 GPU HBM(VRAM)에 저장(Read/Write)하지 않고, $Q, K, V$ 입력을 작은 블록으로 쪼개(**Tiling**) 초고속 온칩 **SRAM 내에서 온라인 소프트맥스(Online Softmax)로 한 번에 계산**합니다. (최신 v3/v4에서는 Hopper·Blackwell 아키텍처의 비동기 파이프라이닝 등 하드웨어 최적화까지 결합되었습니다.)
+* **의의:** 근사가 아닌 정확한(Exact) 어텐션을 유지하면서도 학습·추론 속도와 메모리 효율($O(N)$)을 획기적으로 개선한 필수 표준입니다.
+
+### 🔹 PagedAttention
+* **핵심:** OS의 가상 메모리와 페이징 기법을 차용하여, KV 캐시를 연속된 메모리 공간이 아닌 **고정 크기의 비연속 블록(Page) 단위**로 동적 할당합니다.
+* **의의:** 메모리 단편화를 제거해 동시 처리 가능한 배치 크기(Throughput)를 크게 높입니다. (vLLM에서 처음 도입되었으며 현재 여러 서빙 엔진의 표준 KV 관리 기법으로 활용됩니다.)
+
+### 🔹 Ring Attention
+* **핵심:** 매우 긴 시퀀스를 여러 GPU에 분산 배치하고, 각 GPU가 로컬 $Q$ 블록을 유지한 채 다른 GPU의 $K, V$ 블록을 **링(Ring) 토폴로지로 순환 전달**하며 통신과 연산을 중첩(Overlap)시킵니다.
+* **의의:** 단일 GPU 메모리를 초과하는 수백만 토큰 길이의 컨텍스트 학습·추론(Context Parallelism)을 가능하게 합니다.
+
+---
+
+## 🚀 학습 및 실무 적용 우선순위 가이드
+
+1. **LLM 구조 및 서빙 필수:** `Causal Self-Attention` (`MHA` ➔ `GQA` ➔ `MLA`) + `FlashAttention` + `PagedAttention`
+2. **멀티모달 & 비전 확장:** `Cross-Attention` + `Bidirectional Attention` + `Windowed / Axial Attention`
+3. **초장문 & 차세대 아키텍처:** `SWA` + `Linear Attention` + `Ring Attention` + `NSA / MoBA`
+
+</details>
+<details>
+<summary>파이토치 햇갈리는 핵심 용어</summary>
+
+### 1. `state_dict` vs 모델 객체 (Model Object)
+
+* **`state_dict`**: 신경망의 **가중치(Weight)와 편향(Bias) 숫자들만** 쏙 뽑아서 담아둔 파이썬 딕셔너리(알맹이)입니다. 디스크에 저장할 때 주로 `.pth` 확장자를 씁니다.
+* **모델 객체**: 신경망의 **코드 구조(뼈대)와 가중치가 모두 포함**된 완성품 형태입니다. 구조와 가중치를 통째로 박제할 때는 `.pt` 형태로 저장합니다.
+
+---
+
+### 2. `model.train()` vs `model.eval()`
+
+* **`model.train()`**: 모델을 **학습 모드**로 전환합니다. Dropout이나 BatchNorm 등이 활성화되어 데이터의 특성을 유연하게 학습합니다.
+* **`model.eval()`**: 모델을 **평가(추론) 모드**로 전환합니다. Dropout을 끄고 고정된 통계값을 사용해, 예측할 때마다 결과가 흔들리지 않게 고정합니다.
+
+---
+
+### 3. `torch.jit.trace` vs `torch.jit.script`
+
+* **`torch.jit.trace` (추적)**: 가짜 입력(Dummy Input)을 모델에 한 번 슥 통과시키면서 데이터가 흘러간 연산 경로를 그대로 '녹화'하는 방식입니다. (단순한 구조에 적합)
+* **`torch.jit.script` (스크립트)**: 파이썬 **코드 자체를 분석해서 컴파일**하는 방식입니다. (모델 내부에 동적인 `if`문이나 `for`문 제어문이 많을 때 적합)
+
+---
+
+### 4. `model.eval()` vs `torch.no_grad()` (자주 같이 쓰이는 짝꿍)
+
+* **`model.eval()`**: 신경망 내부 레이어들의 **동작 방식(Dropout 등)을 평가용으로 변경**합니다.
+* **`torch.no_grad()`**: 추론 시 필요 없는 **기울기(Gradient) 계산 기록을 아예 안 하도록 막아주어** 메모리를 아끼고 속도를 높여줍니다.
+* *팁:* 실제 추론(Inference) 코드를 짤 때는 두 가지를 보통 세트로 함께 사용합니다!
+
+</details>
 
 
 
