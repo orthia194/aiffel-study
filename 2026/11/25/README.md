@@ -38,6 +38,10 @@ Kubernetes는 **사령부(Control Plane)**와 **일꾼 서버(Worker Node)**를 
              (app: qa)         (app: qa)
 ```
 
+* **왜 단순 레지스트리(MLflow 별칭) 롤백과 다를까?**
+  * MLflow 별칭 롤백은 장부상의 대표 모델 '이름표'만 바꾸는 작업이라 실제 서버 재로딩 중의 요청 끊김을 막지 못함.
+  * 반면 Kubernetes 롤링·롤백은 ① 새 파드를 먼저 띄워 모델 로딩 완료(`readinessProbe` 통과)를 확인한 뒤 ② `Service`가 트래픽을 넘기고 ③ 기존 파드는 `SIGTERM`으로 진행 중이던 요청을 마저 처리한 뒤 종료하므로, **실제 손님 요청 손실 없이 무중단 교대**가 가능함.
+
 ---
 
 ### 1.3 도커 이미지(`COPY`) vs 볼륨 마운트(`Mount`) 분리 원칙
@@ -52,7 +56,7 @@ Kubernetes는 **사령부(Control Plane)**와 **일꾼 서버(Worker Node)**를 
 
 ---
 
-## 2. 실무 핵심 노하우 & 트러블슈팅 가이드
+## 2. 운영 핵심 노하우 & 트러블슈팅 가이드
 
 ### 2.1 GPU 롤링 업데이트 데드락(Deadlock) 원인과 해결법
 
@@ -82,23 +86,63 @@ Kubernetes는 **사령부(Control Plane)**와 **일꾼 서버(Worker Node)**를 
 * **`resources` 설계 (`requests` vs `limits`):**
   * `requests` (`cpu`, `memory`): 스케줄러가 파드를 배치할 빈 노드 공간을 계산하는 기준.
   * `limits.memory`: 메모리 누수·대용량 입력 폭주 시 해당 파드만 **`OOMKilled`**로 정리해 동일 노드 내 다른 AI 서비스를 보호. *(CPU `limits`는 스로틀링으로 지연 시간이 튈 수 있어 의도적으로 비우기도 함)*
+* **종료 신호 (`SIGTERM`):** `Dockerfile`에서 셸 형태(`CMD python ...`)가 아닌 Exec 형태(`CMD ["python", "-m", "qa.serve"]`)를 써야 `/bin/sh`가 `SIGTERM`을 가로채지 않고 서버가 1초 내에 우아하게 종료됨.
 
 ---
 
-### 2.3 프로덕션 컨테이너 & 보안·공급망 체크리스트
+## 3. 보안 & 공급망 관리 핵심 총정리 (필수 체크리스트)
 
-1. **재현성 & 경량화:** 베이스 이미지 다이제스트(`@sha256:...`) 고정, Multi-stage Build + `python -m venv --without-pip`로 런타임에서 `pip`까지 제거.
-2. **레이어 캐싱 순서:** 무거운 패키지 설치(`pip install`, 예: `vLLM`의 `5.11 GB` 레이어)를 위에 두고, 자주 바뀌는 소스 코드(`COPY qa/`)는 맨 아래에 배치.
-3. **Non-root & 숫자 UID:** `kubelet`은 `runAsNonRoot: true` 검사 시 `/etc/passwd`의 문자 이름을 읽지 못하므로 반드시 **`USER 10001:10001`**처럼 숫자 지정. 코드 폴더는 `root` 소유 + `readOnlyRootFilesystem: true`로 잠그고, 쓰기 필요한 경로만 `emptyDir` 마운트 (`PermissionError` 방지).
-4. **종료 신호 (`SIGTERM`):** `CMD ["python", "-m", "qa.serve"]` 같은 Exec 형식을 써야 `/bin/sh`가 `SIGTERM`을 가로채지 않고 서버에 즉시 전달해 30초 대기 없이 우아한 종료(`Graceful Shutdown`) 가능.
-5. **시크릿 유출 & 화이트아웃(`.wh.`) 함정:** 이미지 레이어는 누적되므로 `COPY . .` 뒤 `RUN rm -f .env`를 해도 **하위 레이어에 키가 그대로 남고 `.wh..env` 가림막만 생김**. 반드시 `.dockerignore`로 `**/.env`, `keys/`를 원천 차단하고, `ARG`/`ENV`에도 키를 넣지 않으며, 사내망 반입 전 전 레이어 스캔 수행.
-6. **의존성 고정 & SBOM & 서명 키 교체:** `pip --dry-run --report`로 간접 의존성까지 `requirements.lock`에 잠그고 `CycloneDX` SBOM으로 취약점 추적 기반 확보. 폐쇄망 반입 시 `Ed25519` 개인키 서명 + 공개키 검증을 수행하며, 키 교체 시 `{"2026-old": ..., "2026-new": ...}` ➔ `{"2026-new": ...}` 2단계로 무중단 교체(Key Rotation).
+외부(Docker Hub/PyPI/HuggingFace)에서 가져온 이미지를 여러 서비스가 공존하는 사내 Kubernetes 클러스터에 올리기 때문에, **"빌드 ➔ 실행 ➔ 반입"** 전 과정에 걸쳐 다층 방어가 필수입니다.
+
+### 3.1 컨테이너 빌드 & 런타임 격리 보안
+1. **베이스 이미지 다이제스트(`@sha256:...`) 고정:**
+   * `:latest`나 `:3.12-slim` 같은 이름표(태그)는 제작자가 내용물을 덮어써도 알 수 없습니다. 고유 암호화 지문(`@sha256:...`)으로 고정해야 변조 차단과 빌드 재현성이 보장됩니다.
+2. **멀티 스테이지 빌드 + `--without-pip`:**
+   * 빌드 단계에서만 `pip`로 패키지를 설치하고, 최종 런타임 이미지에는 `/opt/venv`만 복사해 **`pip` 자체를 없앱니다.** (용량 절감 + 해커가 컨테이너에 침입해도 `pip install`로 악성 도구를 깔지 못하게 차단)
+3. **비root 실행 & 반드시 '숫자 UID' 사용 (`USER 10001:10001`):**
+   * `root` 권한 컨테이너가 뚫리면 같은 서버(노드)의 다른 AI 서비스까지 위험해집니다.
+   * **주의:** `kubelet`은 `runAsNonRoot: true` 검사 시 이미지 안의 `/etc/passwd`에서 문자 이름(`app`)이 몇 번 숫자인지 읽어오지 못해 실행을 거부합니다. 반드시 **`10001:10001`처럼 숫자**로 적어야 합니다.
+4. **코드 변조 차단 + K8s `securityContext` 3종 잠금:**
+   * `Dockerfile`에서 `COPY qa/ ./qa/`는 `USER 10001` 전환 직전(`root`일 때) 실행해 앱 유저가 소스 코드를 수정하지 못하게 잠급니다.
+   * K8s 파드 설정에 아래 3가지를 걸고, 쓰기가 필요한 경로(`/logs` 등)만 별도 `emptyDir` 볼륨을 붙입니다 (`PermissionError` 방지):
+     * `readOnlyRootFilesystem: true` (컨테이너 내부 파일 시스템 전체 읽기 전용 잠금)
+     * `allowPrivilegeEscalation: false` (권한 상승 차단)
+     * `capabilities: drop: ["ALL"]` (불필요한 리눅스 커널 권한 전부 제거)
+5. **AI 모델 실행 보안 (`--trust-remote-code` 금지):**
+   * vLLM 등에서 HuggingFace 모델 저장소의 임의 파이썬 코드를 무검증 실행하는 `--trust-remote-code` 옵션은 사내 운영 환경에서 반드시 제거합니다.
 
 ---
 
-## 3. 오늘의 실습 코드 검증 및 실행 결과
+### 3.2 레이어 시크릿 유출 방어 & SBOM(공급망 추적)
+1. **`.dockerignore` 차단 & `ENV`/`ARG` 시크릿 금지:**
+   * `**/.env`, `keys/`, `*.tar` 등은 `.dockerignore`로 빌드 시작부터 제외합니다.
+   * `Dockerfile`의 `ENV`·`ARG`에 `KEY`, `SECRET`, `TOKEN`, `PASSW`를 넣으면 이미지 설정과 `docker history`에 평문으로 영구 기록됩니다. 운영 비밀키는 반드시 Kubernetes **`Secret`**(`readOnly: true`)으로 런타임에 주입합니다.
+2. **화이트아웃(`.wh.`) 파일의 함정 (`RUN rm`이 위험한 이유!):**
+   * 도커 이미지는 불변 레이어를 겹쳐 쌓는 구조입니다. `COPY . .`로 실수로 `.env`를 넣은 뒤 다음 줄에 `RUN rm -f .env`로 지워도, **아래 레이어에는 API 키 원본이 그대로 살아있고 위 레이어에는 눈가림 스티커(`.wh..env`, 화이트아웃)만 붙습니다.**
+   * 따라서 배포/반입 전 `scan_image.py` 같은 스캐너로 **모든 레이어 + 환경변수(`Env`) + 빌드 기록(`history`)**을 전수 검사해야 합니다.
+3. **의존성 잠금(`requirements.lock`) & SBOM (`CycloneDX 1.6`):**
+   * `requirements.txt`에 4줄만 적어도 실제 설치 시 간접 의존성 19개 이상이 따라 들어옵니다.
+   * `pip --dry-run --ignore-installed --report`로 전체 패키지를 `==` 고정(`requirements.lock`)하고, 국제 표준 **SBOM**(소프트웨어 성분표)을 뽑아두면 추후 특정 하위 라이브러리 취약점(CVE) 발생 시 영향받는 서비스를 1초 만에 색출할 수 있습니다.
 
-### 3.1 오프라인 검증 & 시뮬레이션 결과 (Google Colab)
+---
+
+### 3.3 폐쇄망(사내망) 반입 전자서명(`Ed25519`) & 키 교체
+인터넷이 끊긴 사내 폐쇄망으로 `docker save`(`.tar`) 이미지를 들여올 때는 **비대칭키 전자서명**으로 출처와 무결성을 검증합니다.
+
+* **단순 해시만으론 부족한 이유:** 해커가 `.tar` 파일을 변조하고 명세서(`RECORD`)의 `sha256` 값까지 같이 고쳐 적으면 단순 해시 비교가 뚫립니다.
+* **공개키/개인키 검증 원리 (인감도장 & 감별기):**
+  * **개인키 (`SIGNING_KEY`):** 외부 빌드팀 금고에만 있는 비밀 인감도장 ➔ `canonical(RECORD)`(띄어쓰기/키순서 고정)에 **전자서명(`SIGNATURE`)** 생성 시에만 사용.
+  * **공개키 (`release.pub`):** 사내망 검사대에 미리 넣어둔 감별기 ➔ 사내망은 개인키가 없어도 공개키로 **"이 서명이 진짜 빌드팀 개인키로 찍힌 게 맞는지"** + **"실제 파일 해시가 명세서와 일치하는지"** 동시 검증! (공개키를 탈취당해도 가짜 서명은 위조 불가)
+* **무중단 서명 키 교체 (Key Rotation):**
+  * 키 교체 시 기존 서명 반입물이 거절되지 않도록 2단계로 전환합니다:
+    1. **교체 중(`during`):** `{"2026-old": old_pem, "2026-new": new_pem}` — 옛 키와 새 키 모두 허용
+    2. **전환 후(`after`):** `{"2026-new": new_pem}` — 옛 키 폐기 후 새 키만 허용
+
+---
+
+## 4. 오늘의 실습 코드 검증 및 실행 결과
+
+### 4.1 오프라인 검증 & 시뮬레이션 결과 (Google Colab)
 
 | 실습 항목 | 검증 내용 | 실제 결과 |
 | :--- | :--- | :--- |
@@ -110,11 +154,11 @@ Kubernetes는 **사령부(Control Plane)**와 **일꾼 서버(Worker Node)**를 
 | **GPU 롤링 수학 (`rollout_plan`)** | 빈 GPU 0장, 기본 `25%` 전략으로 `replicas`별 롤링 시뮬레이션 | **2대·3대: `멈춤`(데드락)** / **4대·8대: `끝남`** (`floor` 값이 4대부터 1이 됨). 3대도 `maxSurge=0, maxUnavailable=1` 적용 시 매 스텝 2대 유지하며 **4스텝 만에 `끝남`** |
 | **Compose 헬스체크 튜닝** | 8초 예열 서버에 기본값(`interval 30s`) vs 조정값(`start_period 60s, start_interval 1s`) | 기본값 **`30.1초`** ➔ 조정값 **`10.1초`** (약 20초 단축) |
 | **이미지 시크릿 스캐너** | `.env` 복사 후 `rm -f .env` + `ARG`/`ENV` 유출 모의 이미지(`qa-leaky-practice.tar`) 스캔 | 레이어 1 원본 + `.wh..env` 화이트아웃 + `Env`/`history` 포함 **총 5건 탐지 (종료 코드 1)** |
-| **의존성 Lock & SBOM & 서명** | `requirements.txt` ➔ `requirements.lock` ➔ `CycloneDX 1.6` ➔ `Ed25519` 서명·변조 테스트 | 직접 명시 **4줄 ➔ 실제 패키지 19개** 고정, SBOM 19개 생성, 파일/명세서 변조 시 반입 거절 및 2단계 키 교체(`during` ➔ `after`) 검증 |
+| **의존성 Lock & SBOM & 서명** | `requirements.txt` ➔ `requirements.lock` ➔ `CycloneDX 1.6` ➔ `Ed25519` 서명·변조·키 교체 테스트 | 직접 명시 **4줄 ➔ 실제 패키지 19개** 고정, SBOM 19개 생성, 파일/명세서 변조 시 반입 거절 및 2단계 키 교체(`during` ➔ `after`) 검증 |
 
 ---
 
-### 3.2 실제 Kubernetes 클러스터 실행 결과 (Google Cloud Shell `kind-d67`)
+### 4.2 실제 Kubernetes 클러스터 실행 결과 (Google Cloud Shell `kind-d67`)
 
 > 실행 환경: `Docker 29.9.3` / `kind 0.33.0` / `kubectl v1.35.9`
 
@@ -124,11 +168,11 @@ Kubernetes는 **사령부(Control Plane)**와 **일꾼 서버(Worker Node)**를 
 | **자가 치유 & 스케일링** | 실행 중 파드(`k2z94`) 강제 삭제 및 `replicas=4` 확장 | 삭제 파드는 `SIGTERM` 수신 후 **1초 내 `Completed` 종료**, 새 파드(`hbclw`) 즉시 생성 후 **`10초` 만에 `1/1`** 복구. 스케일링 시 4개 파드 즉시 생성 |
 | **롤링 업데이트 & 롤백** | `--build-arg VERSION=2.0.0` 빌드 ➔ `set image` ➔ `rollout undo` | 레이어 캐싱으로 **`0.5s` 만에 빌드**, 새 파드(`11~12s`에 `1/1`) 확인 후 옛 파드 종료(무중단), `/ready` `"판":"2.0.0"` 확인 후 `undo`로 `"판":"1.5.0"` 즉시 복구 |
 | **메모리 상한 테스트** | `limits.memory: 128Mi` 파드(`oom-test`)에서 `300Mi` 할당 | 생성 **`9s` 만에 `OOMKilled`** 종료 확인 (다른 정상 파드 영향 없음) |
-| **GPU 데드락 재현 & 해소** | 노드에 가짜 GPU `example.com/gpu: 2` 패치 ➔ 2파드 점유 후 `1.6.0` 업데이트 ➔ `2.0.0` + `maxSurge=0, maxUnavailable=1` 적용 | `1.6.0` 새 파드가 **`Pending`** (`FailedScheduling: 1 Insufficient example.com/gpu`) 상태로 멈추고 60초 후 **`ProgressDeadlineExceeded`** 기록 ➔ 전략 수정 즉시 기존 파드 1개씩 `Completed` 후 **`13s`·`11s` 만에 `1/1` 교체 완료** |
+| **GPU 데드락 재현 & 해소** | 노드에 가짜 GPU `example.com/gpu: 2` 패치 ➔ 2파드 점유 후 `1.6.0` 업데이트 ➔ `2.0.0` + `maxSurge=0, maxUnavailable: 1` 적용 | `1.6.0` 새 파드가 **`Pending`** (`FailedScheduling: 1 Insufficient example.com/gpu`) 상태로 멈추고 60초 후 **`ProgressDeadlineExceeded`** 기록 ➔ 전략 수정 즉시 기존 파드 1개씩 `Completed` 후 **`13s`·`11s` 만에 `1/1` 교체 완료** |
 
 ---
 
-### 3.3 주요 실행 명령어 레퍼런스 (`Cloud Shell / kind`)
+### 4.3 주요 실행 명령어 레퍼런스 (`Cloud Shell / kind`)
 
 ```bash
 # 1. 이미지 빌드 · 클러스터 생성 · 이미지 적재
